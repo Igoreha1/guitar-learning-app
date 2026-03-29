@@ -1,26 +1,357 @@
+/* Импортируем Tailwind CSS */
 @import "tailwindcss";
 
+/* Базовые CSS переменные */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary: #e74c3c;
+  --primary-dark: #c0392b;
+  --secondary: #3498db;
+  --dark: #2c3e50;
+  --light: #ecf0f1;
+  --gray: #7f8c8d;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Глобальные стили */
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f5f5;
+  color: #333;
+}
+
+/* Контейнер */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ========== КОМПОНЕНТЫ ========== */
+
+/* Карточки статей */
+.post-card {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-bottom: 30px;
+}
+
+.post-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.post-card-large {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .post-card-large {
+    flex-direction: row;
+  }
+  .post-card-large .post-image {
+    flex: 1;
+  }
+  .post-card-large .post-content {
+    flex: 1;
+    padding: 30px;
+  }
+}
+
+.post-image img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.post-content {
+  padding: 20px;
+}
+
+.post-meta {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin-bottom: 10px;
+}
+
+.post-meta a {
+  color: #e74c3c;
+  text-decoration: none;
+}
+
+.post-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.post-title a {
+  color: #2c3e50;
+  text-decoration: none;
+}
+
+.post-title a:hover {
+  color: #e74c3c;
+}
+
+.post-excerpt {
+  color: #555;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* Сайдбар */
+.sidebar-widget {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.widget-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e74c3c;
+  display: inline-block;
+}
+
+/* Кнопки */
+.btn {
+  display: inline-block;
+  background: #e74c3c;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn:hover {
+  background: #c0392b;
+}
+
+/* Интерактивные блоки */
+.interactive-block {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.interactive-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #2c3e50;
+  border-left: 4px solid #e74c3c;
+  padding-left: 15px;
+}
+
+/* Футер */
+.site-footer {
+  background: #2c3e50;
+  color: #ecf0f1;
+  padding: 40px 0 20px;
+  margin-top: 60px;
+}
+
+.footer-widgets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.footer-copy {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #34495e;
+  font-size: 12px;
+  color: #95a5a6;
+}
+
+/* Игровые стили */
+.game-container {
+  background: linear-gradient(135deg, #0a0a0f 0%, #050507 100%);
+  min-height: calc(100vh - 200px);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.game-canvas {
+  display: block;
+  width: 100%;
+  background: #0a0a0f;
+  cursor: pointer;
+}
+
+.game-controls {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.game-button {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.game-button:active {
+  transform: scale(0.95);
+}
+
+.key-hint {
+  display: inline-block;
+  background: #2d2d2d;
+  border: 1px solid #e74c3c;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-family: monospace;
+  font-weight: bold;
+  color: #e74c3c;
+  min-width: 32px;
+  text-align: center;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+}
+
+/* Анимации */
+@keyframes hitFlash {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+.hit-effect {
+  animation: hitFlash 0.3s ease-out;
+}
+
+@keyframes comboPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.combo-effect {
+  animation: comboPop 0.2s ease-out;
+}
+
+.score-counter {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+}
+
+.mic-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2ecc71;
+  box-shadow: 0 0 5px #2ecc71;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
+  
+  .post-title {
+    font-size: 18px;
+  }
+  
+  .post-excerpt {
+    font-size: 13px;
+  }
+  
+  .game-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .key-hint {
+    padding: 2px 6px;
+    font-size: 12px;
+  }
+}
+
+/* Утилиты */
+.hide-mobile {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .hide-mobile {
+    display: block;
+  }
+}
+
+.show-mobile {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .show-mobile {
+    display: none;
+  }
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.neon-border {
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  box-shadow: 0 0 10px rgba(231, 76, 60, 0.2);
+  transition: all 0.3s ease;
+}
+
+.neon-border:hover {
+  border-color: rgba(231, 76, 60, 0.8);
+  box-shadow: 0 0 20px rgba(231, 76, 60, 0.4);
 }
