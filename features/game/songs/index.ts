@@ -1,10 +1,11 @@
 import { GameSong } from "../types";
 import { kinoSpokoynayaNoch } from "./kinoSpokoynayaNoch";
 import { ruMine } from "./ruMine";
+import { grasshopperSong } from "./grasshopper";
 
-// Вторая песня для примера
+// Вторая песня для примера - Пачка сигарет
 const demoSecondSong: GameSong = {
-  id: "demo_song_2",
+  id: "song_3",
   title: "Пачка сигарет",
   artist: "Кино",
   bpm: 115,
@@ -20,7 +21,7 @@ const demoSecondSong: GameSong = {
   ]
 };
 
-// Третья песня
+// Третья песня - Звезда по имени Солнце
 const demothirdSong: GameSong = {
   id: "demo_song_3",
   title: "Звезда по имени Солнце",
@@ -39,7 +40,8 @@ const demothirdSong: GameSong = {
 };
 
 export const gameSongs: GameSong[] = [
-  ruMine,                    // Arctic Monkeys - R U Mine? (главная)
+  grasshopperSong,           // В траве сидел кузнечик (НОВАЯ ПЕСНЯ)
+  ruMine,                    // Arctic Monkeys - R U Mine?
   kinoSpokoynayaNoch,        // Кино - Спокойная ночь
   demoSecondSong,            // Кино - Пачка сигарет
   demothirdSong,             // Кино - Звезда по имени Солнце

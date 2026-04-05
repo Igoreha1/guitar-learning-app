@@ -6,6 +6,7 @@ export interface GameNote {
   chord?: string;
   fret?: number;
   finger?: number;
+  frequency?: number;
 }
 
 export interface GameSong {
@@ -18,6 +19,7 @@ export interface GameSong {
   difficulty: 'easy' | 'medium' | 'hard';
   effect?: 'clean' | 'distortion' | 'reverb';
   backingTrack?: string;
+  backingTrackOffset?: number;
   image?: string;
 }
 

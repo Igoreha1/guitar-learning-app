@@ -1,15 +1,17 @@
 import * as Tone from "tone";
 import { GameNote, GameSong, GameState } from "./types";
+import { audioEngine } from "@/lib/audioEngine";
 
 export class GameEngine {
-  private transport: typeof Tone.Transport;
   private synth: Tone.PolySynth;
-  private isPlaying: boolean = false;
   private notes: GameNote[] = [];
   private hitNotes: Set<string> = new Set();
   private missedNotes: Set<string> = new Set();
-  private lastHitTime: number = 0;
-  private lastHitNoteId: string = '';
+  private intervalId: NodeJS.Timeout | null = null;
+  private isGameActive: boolean = false;
+  private isGamePaused: boolean = false;
+  private pitchBuffer: number[] = [];
+  private readonly BUFFER_SIZE = 5;
   
   public state: GameState = {
     isPlaying: false,
@@ -27,7 +29,6 @@ export class GameEngine {
   private onStateUpdateCallback?: (state: GameState) => void;
 
   constructor() {
-    this.transport = Tone.Transport;
     this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
     this.synth.set({ volume: -10 });
   }
@@ -40,51 +41,79 @@ export class GameEngine {
     this.state.combo = 0;
     this.hitNotes.clear();
     this.missedNotes.clear();
-    this.transport.bpm.value = song.bpm;
+    audioEngine.setBPM(song.bpm);
   }
 
   async start() {
-    await Tone.start();
-    this.isPlaying = true;
+    await audioEngine.start();
+    this.isGameActive = true;
+    this.isGamePaused = false;
     this.state.isPlaying = true;
-    this.transport.start();
-    this.checkNotesLoop();
+    
+    if (this.intervalId) clearInterval(this.intervalId);
+    this.intervalId = setInterval(() => {
+      if (this.isGameActive && !this.isGamePaused && audioEngine.isPlaying()) {
+        this.checkNotes();
+        this.state.currentTime = audioEngine.getTime();
+        this.onStateUpdateCallback?.(this.state);
+      }
+    }, 50);
+  }
+
+  pause() {
+    if (this.isGameActive && !this.isGamePaused) {
+      this.isGamePaused = true;
+      this.state.isPlaying = false;
+      audioEngine.pause();
+      this.onStateUpdateCallback?.(this.state);
+    }
+  }
+
+  resume() {
+    if (this.isGameActive && this.isGamePaused) {
+      this.isGamePaused = false;
+      this.state.isPlaying = true;
+      audioEngine.start();
+      this.onStateUpdateCallback?.(this.state);
+    }
   }
 
   stop() {
-    this.isPlaying = false;
+    this.isGameActive = false;
+    this.isGamePaused = false;
     this.state.isPlaying = false;
-    this.transport.stop();
+    audioEngine.stop();
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 
   reset() {
-    this.transport.stop();
-    this.transport.seconds = 0;
+    this.stop();
     this.state.currentTime = 0;
     this.state.score = 0;
     this.state.combo = 0;
+    this.state.accuracy = 100;
+    this.state.hitNotes = 0;
     this.hitNotes.clear();
     this.missedNotes.clear();
-    this.lastHitNoteId = '';
-    this.state.isPlaying = false;
-    this.isPlaying = false;
+    this.pitchBuffer = [];
+    this.onStateUpdateCallback?.(this.state);
   }
 
   setCurrentTime(time: number) {
-    this.transport.seconds = time;
     this.state.currentTime = time;
   }
 
   getCurrentTime(): number {
-    return this.transport.seconds;
+    return audioEngine.getTime();
   }
 
-  private checkNotesLoop() {
-    if (!this.isPlaying) return;
-
-    const currentTime = this.transport.seconds;
-    this.state.currentTime = currentTime;
-
+  private checkNotes() {
+    if (!this.isGameActive || this.isGamePaused) return;
+    
+    const currentTime = audioEngine.getTime();
     const timeWindow = 0.3;
     
     this.notes.forEach(note => {
@@ -94,66 +123,48 @@ export class GameEngine {
         this.missNote(note);
       }
     });
-
-    this.onStateUpdateCallback?.(this.state);
-    requestAnimationFrame(() => this.checkNotesLoop());
   }
 
-  checkPlayedNote(playedNote: string, playedString: number, playedFret?: number) {
-    if (!this.isPlaying) return false;
+  addPlayedNote(frequency: number) {
+    if (!this.isGameActive || this.isGamePaused) return;
 
-    const currentTime = this.transport.seconds;
+    this.pitchBuffer.push(frequency);
+    if (this.pitchBuffer.length > this.BUFFER_SIZE) {
+      this.pitchBuffer.shift();
+    }
+    
+    const avgFrequency = this.pitchBuffer.reduce((a, b) => a + b, 0) / this.pitchBuffer.length;
+    this.checkPlayedNoteByFrequency(avgFrequency);
+  }
+
+  private checkPlayedNoteByFrequency(detectedFrequency: number) {
+    const currentTime = audioEngine.getTime();
     const timeWindow = 0.3;
+    const tolerance = 0.02;
     
     const expectedNote = this.notes.find(n => 
       !this.hitNotes.has(n.id) && 
       !this.missedNotes.has(n.id) &&
-      n.string === playedString &&
+      n.frequency !== undefined &&
       Math.abs(currentTime - n.time) <= timeWindow
     );
 
-    if (expectedNote) {
-      if (expectedNote.fret !== undefined && expectedNote.fret !== null) {
-        if (playedFret === undefined || playedFret !== expectedNote.fret) {
-          if (this.state.combo > 0) {
-            this.state.combo = 0;
-            this.onStateUpdateCallback?.(this.state);
-          }
-          return false;
-        }
-      }
-      
-      const expectedNoteName = expectedNote.chord || this.getNoteNameFromString(playedString);
-      const isMatch = this.isNoteMatch(playedNote, expectedNoteName);
+    if (expectedNote && expectedNote.frequency) {
+      const diff = Math.abs(detectedFrequency - expectedNote.frequency);
+      const isMatch = diff < expectedNote.frequency * tolerance;
       
       if (isMatch) {
         const timeDiff = Math.abs(currentTime - expectedNote.time);
         const accuracy = Math.max(0, 100 - (timeDiff / timeWindow) * 100);
         this.hitNote(expectedNote, accuracy);
-        return true;
+      } else if (this.state.combo > 0) {
+        this.state.combo = 0;
+        this.onStateUpdateCallback?.(this.state);
       }
-    }
-    
-    if (this.state.combo > 0) {
+    } else if (this.state.combo > 0) {
       this.state.combo = 0;
       this.onStateUpdateCallback?.(this.state);
     }
-    
-    return false;
-  }
-
-  private isNoteMatch(played: string, expected: string): boolean {
-    const normalize = (note: string) => {
-      return note.replace(/[0-9]/g, '').toUpperCase();
-    };
-    const playedNorm = normalize(played);
-    const expectedNorm = normalize(expected);
-    return playedNorm === expectedNorm;
-  }
-
-  private getNoteNameFromString(stringNum: number): string {
-    const notes = ['E', 'A', 'D', 'G', 'B', 'E'];
-    return notes[stringNum];
   }
 
   private hitNote(note: GameNote, accuracy: number) {
@@ -207,7 +218,7 @@ export class GameEngine {
   }
 
   getActiveNotes(): GameNote[] {
-    const currentTime = this.transport.seconds;
+    const currentTime = audioEngine.getTime();
     const windowTime = 2;
     return this.notes.filter(n => 
       !this.hitNotes.has(n.id) && 

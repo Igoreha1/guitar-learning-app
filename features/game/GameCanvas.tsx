@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GameEngine } from "./GameEngine";
 import { GameSong } from "./types";
-import AudioInput from "./AudioInput";
+import { PitchDetector } from "./PitchDetector";
 import BackingTrackPlayer from "./BackingTrackPlayer";
 
 interface GameCanvasProps {
@@ -35,7 +35,6 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
     isPlaying: false
   });
   const [lastHitFeedback, setLastHitFeedback] = useState<{ note: string; isHit: boolean; accuracy: number; fret?: number } | null>(null);
-  const [isMicConnected, setIsMicConnected] = useState(false);
   const [particles, setParticles] = useState<Particle[]>([]);
   
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -47,8 +46,66 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
   const [savedTime, setSavedTime] = useState(0);
   const [isGameReady, setIsGameReady] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  
+  // Микрофон и эффекты
+  const [isMicConnected, setIsMicConnected] = useState(false);
+  const [isMonitoring, setIsMonitoring] = useState(false);
+  const [monitoringVolume, setMonitoringVolume] = useState(0.7);
+  const [currentEffect, setCurrentEffect] = useState(song.effect || 'clean');
+  const [debugNote, setDebugNote] = useState('');
+  const [debugInfo, setDebugInfo] = useState('Ожидание');
+  const detectorRef = useRef<PitchDetector | null>(null);
 
-  // Запуск с отсчётом
+  // Инициализация микрофона
+  useEffect(() => {
+    const initMic = async () => {
+      const detector = new PitchDetector();
+      const success = await detector.init();
+      if (success) {
+        detectorRef.current = detector;
+        setIsMicConnected(true);
+        setDebugInfo('Микрофон готов');
+        // Применяем эффект песни
+        if (song.effect) {
+          detector.applyEffect(song.effect);
+          setCurrentEffect(song.effect);
+        }
+      } else {
+        setIsMicConnected(false);
+        setDebugInfo('Микрофон не доступен');
+      }
+    };
+    initMic();
+    
+    return () => {
+      if (detectorRef.current) {
+        detectorRef.current.stopDetection();
+        detectorRef.current.cleanup();
+      }
+    };
+  }, []);
+
+  // Автоматическое распознавание
+  useEffect(() => {
+    if (!detectorRef.current || !isMicConnected) return;
+    
+    if (gameState.isPlaying && isGameReady) {
+      detectorRef.current.startDetection((pitch, noteName) => {
+        if (pitch > 0 && noteName && engineRef.current) {
+          setDebugNote(`${noteName} (${pitch.toFixed(0)} Гц)`);
+          engineRef.current.addPlayedNote(pitch);
+        } else {
+          setDebugNote('—');
+        }
+      });
+      setDebugInfo('🎤 Слушаю гитару...');
+    } else {
+      detectorRef.current.stopDetection();
+      setDebugNote('');
+      setDebugInfo(gameState.isPlaying ? 'Ожидание старта' : 'Игра не активна');
+    }
+  }, [gameState.isPlaying, isGameReady, isMicConnected]);
+
   const startWithCountdown = () => {
     if (engineRef.current?.state.isPlaying) {
       engineRef.current?.stop();
@@ -99,7 +156,7 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
     if (engineRef.current?.state.isPlaying) {
       const currentTime = engineRef.current.getCurrentTime();
       setSavedTime(currentTime);
-      engineRef.current?.stop();
+      engineRef.current?.pause();
       setIsPaused(true);
       setShouldPlayBackingTrack(false);
       setIsGameReady(false);
@@ -118,6 +175,33 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
     }
+  };
+
+  // Управление мониторингом
+  const toggleMonitoring = () => {
+    if (!detectorRef.current) return;
+    
+    if (isMonitoring) {
+      detectorRef.current.disableMonitoring();
+      setIsMonitoring(false);
+    } else {
+      detectorRef.current.enableMonitoring(monitoringVolume);
+      setIsMonitoring(true);
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setMonitoringVolume(newVolume);
+    if (detectorRef.current && isMonitoring) {
+      detectorRef.current.setMonitoringVolume(newVolume);
+    }
+  };
+
+  const changeEffect = (effect: string) => {
+    if (!detectorRef.current) return;
+    detectorRef.current.applyEffect(effect);
+    setCurrentEffect(effect);
   };
 
   useEffect(() => {
@@ -183,12 +267,6 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
       }
     };
   }, [song, onScoreUpdate]);
-
-  const handleGuitarNote = (noteName: string, stringNum: number, fret?: number) => {
-    if (engineRef.current && gameState.isPlaying) {
-      engineRef.current.checkPlayedNote(noteName, stringNum, fret);
-    }
-  };
 
   // Отрисовка канваса
   useEffect(() => {
@@ -451,27 +529,93 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
         </div>
       </div>
       
+      {/* Мониторинг и эффекты */}
+      <div className="p-3 bg-gray-800/50 border-t border-gray-700">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-xs text-gray-400">🎸 МОНИТОРИНГ И ЭФФЕКТЫ</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleMonitoring}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                isMonitoring ? "bg-purple-600 text-white" : "bg-gray-700 text-gray-400"
+              }`}
+            >
+              {isMonitoring ? "🔊 ВКЛ" : "🔇 ВЫКЛ"}
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Громкость</span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={monitoringVolume}
+                onChange={handleVolumeChange}
+                className="w-20 h-1 bg-gray-600 rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => changeEffect('clean')}
+            className={`px-3 py-1 rounded-lg text-xs transition ${
+              currentEffect === 'clean' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400'
+            }`}
+          >
+            🎸 Clean
+          </button>
+          <button
+            onClick={() => changeEffect('distortion')}
+            className={`px-3 py-1 rounded-lg text-xs transition ${
+              currentEffect === 'distortion' ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-400'
+            }`}
+          >
+            🔥 Дисторшн
+          </button>
+          <button
+            onClick={() => changeEffect('reverb')}
+            className={`px-3 py-1 rounded-lg text-xs transition ${
+              currentEffect === 'reverb' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400'
+            }`}
+          >
+            🌊 Реверберация
+          </button>
+        </div>
+        <div className="mt-2 flex justify-between items-center">
+          <div className="text-xs text-gray-500">
+            🎵 Распознаётся: <span className="text-green-400">{debugNote || '—'}</span>
+          </div>
+          <div className="text-xs text-gray-500">
+            {debugInfo}
+          </div>
+        </div>
+      </div>
+      
       {song.backingTrack && (
         <div className="p-3 bg-gray-800/50 border-t border-gray-700">
           <div className="flex justify-between items-center mb-2">
             <span className="text-xs text-gray-400">🎵 МИНУСОВКА</span>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">Громкость</span>
-              <input type="range" min="0" max="1" step="0.01" value={backingTrackVolume} onChange={(e) => setBackingTrackVolume(parseFloat(e.target.value))} className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer" />
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={backingTrackVolume}
+                onChange={(e) => setBackingTrackVolume(parseFloat(e.target.value))}
+                className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+              />
             </div>
           </div>
           <BackingTrackPlayer 
             url={song.backingTrack} 
             isPlaying={shouldPlayBackingTrack} 
-            volume={backingTrackVolume}
+            volume={backingTrackVolume} // ← передаём смещение
           />
-          <p className="text-xs text-gray-500 mt-2 text-center">🎸 Играйте поверх минусовки — гитара в песне убрана</p>
         </div>
       )}
-      
-      <div className="p-4 bg-gray-900/90">
-        <AudioInput onNoteDetected={handleGuitarNote} onMicStatusChange={setIsMicConnected} />
-      </div>
       
       <div className="bg-gray-950 p-3 text-center text-xs text-gray-500 border-t border-red-500/20">
         {isMicConnected ? "🎸 МИКРОФОН ГОТОВ • ИГРАЙТЕ НА ГИТАРЕ" : "⚠️ ПОДКЛЮЧИТЕ МИКРОФОН ДЛЯ РАСПОЗНАВАНИЯ ЗВУКА"}

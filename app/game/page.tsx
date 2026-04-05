@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import GameCanvas from "@/features/game/GameCanvas";
 import { gameSongs } from "@/features/game/songs";
 import { GameSong } from "@/features/game/types";
@@ -10,6 +10,43 @@ export default function GamePage() {
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [hoveredSong, setHoveredSong] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  // Проверяем авторизацию при загрузке
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.user) setUser(data.user);
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  // Проверяем, добавлена ли песня в избранное
+  useEffect(() => {
+    if (!selectedSong) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(`/api/user/favorites`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.favorites) {
+          const isFav = data.favorites.some((fav: any) => fav.songId === selectedSong.id);
+          setIsFavorite(isFav);
+        }
+      })
+      .catch(err => console.error('Ошибка проверки избранного:', err));
+  }, [selectedSong]);
 
   // При клике на песню — показываем её детали справа
   const handleSongSelect = (song: GameSong) => {
@@ -31,6 +68,46 @@ export default function GamePage() {
     setGameStarted(false);
     setSelectedSong(null);
     setScore(0);
+  };
+
+  // Добавление/удаление из избранного
+  const toggleFavorite = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Войдите в аккаунт, чтобы добавлять в избранное');
+      return;
+    }
+    
+    try {
+      if (isFavorite) {
+        // Удаляем из избранного
+        const res = await fetch(`/api/user/favorites?songId=${selectedSong?.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          setIsFavorite(false);
+          alert('Песня удалена из избранного');
+        }
+      } else {
+        // Добавляем в избранное
+        const res = await fetch('/api/user/favorites', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ songId: selectedSong?.id })
+        });
+        if (res.ok) {
+          setIsFavorite(true);
+          alert('Песня добавлена в избранное');
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка:', error);
+      alert('Произошла ошибка');
+    }
   };
 
   // Если игра запущена — показываем игровое поле
@@ -186,6 +263,9 @@ export default function GamePage() {
                 song={selectedSong} 
                 onPlay={startGame}
                 onClose={() => setSelectedSong(null)}
+                isFavorite={isFavorite}
+                onToggleFavorite={toggleFavorite}
+                isLoggedIn={!!user}
               />
             ) : (
               <div className="bg-black/40 backdrop-blur-sm rounded-xl border border-gray-800 p-8 text-center">
@@ -222,7 +302,21 @@ export default function GamePage() {
 }
 
 // Компонент деталей песни (отображается справа)
-function SongDetails({ song, onPlay, onClose }: { song: GameSong; onPlay: () => void; onClose: () => void }) {
+function SongDetails({ 
+  song, 
+  onPlay, 
+  onClose, 
+  isFavorite, 
+  onToggleFavorite,
+  isLoggedIn 
+}: { 
+  song: GameSong; 
+  onPlay: () => void; 
+  onClose: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  isLoggedIn: boolean;
+}) {
   const chords = getUniqueChords(song);
   
   return (
@@ -256,10 +350,30 @@ function SongDetails({ song, onPlay, onClose }: { song: GameSong; onPlay: () => 
       
       {/* Информация */}
       <div className="p-6">
-        <h2 className="text-2xl font-bold text-white mb-1">{song.title}</h2>
-        <p className="text-gray-400 text-sm mb-6">{song.artist}</p>
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-1">{song.title}</h2>
+            <p className="text-gray-400 text-sm">{song.artist}</p>
+          </div>
+          
+          {/* Кнопка "В избранное" */}
+          <button
+            onClick={onToggleFavorite}
+            className={`px-3 py-2 rounded-lg transition text-sm font-medium ${
+              isFavorite 
+                ? 'bg-red-600/20 text-red-400 border border-red-500/50' 
+                : isLoggedIn 
+                  ? 'bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-700' 
+                  : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+            }`}
+            disabled={!isLoggedIn}
+            title={!isLoggedIn ? 'Войдите в аккаунт' : isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
+          >
+            {isFavorite ? '❤️ В избранном' : '🤍 В избранное'}
+          </button>
+        </div>
         
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-6 mt-4">
           <div className="bg-gray-800/50 rounded-lg p-3 text-center">
             <div className="text-xs text-gray-400 mb-1">ДЛИТЕЛЬНОСТЬ</div>
             <div className="text-xl font-bold text-white">{Math.floor(song.duration)} сек</div>
@@ -291,6 +405,13 @@ function SongDetails({ song, onPlay, onClose }: { song: GameSong; onPlay: () => 
         >
           🎸 ИГРАТЬ
         </button>
+        
+        {/* Подсказка для неавторизованных */}
+        {!isLoggedIn && (
+          <p className="text-xs text-gray-500 text-center mt-3">
+            🔐 Войдите в аккаунт, чтобы добавлять песни в избранное
+          </p>
+        )}
       </div>
     </div>
   );

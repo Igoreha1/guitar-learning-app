@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { PitchDetector } from './PitchDetector';
 
 interface AudioInputProps {
-  onNoteDetected: (note: string, string: number, fret?: number) => void;
+  onNoteDetected: (note: string, string: number, fret?: number, pitch?: number) => void;
   onMicStatusChange?: (isConnected: boolean) => void;
 }
 
@@ -20,6 +20,10 @@ export default function AudioInput({ onNoteDetected, onMicStatusChange }: AudioI
   const [debugInfo, setDebugInfo] = useState('Ожидание...');
   const detectorRef = useRef<PitchDetector | null>(null);
   const lastNoteTimeRef = useRef<number>(0);
+  
+  // Буфер для стабилизации частоты
+  const pitchBufferRef = useRef<number[]>([]);
+  const BUFFER_SIZE = 5;
 
   useEffect(() => {
     const initMic = async () => {
@@ -76,18 +80,27 @@ export default function AudioInput({ onNoteDetected, onMicStatusChange }: AudioI
         
         setCurrentFret(fret ?? null);
         
+        // Стабилизация частоты через буфер
+        pitchBufferRef.current.push(pitch);
+        if (pitchBufferRef.current.length > BUFFER_SIZE) {
+          pitchBufferRef.current.shift();
+        }
+        const avgPitch = pitchBufferRef.current.reduce((a, b) => a + b, 0) / pitchBufferRef.current.length;
+        
         const stringDisplay = stringNum !== undefined && stringNum !== null ? stringNum + 1 : '?';
-        setDebugInfo(`🎵 Частота: ${pitch.toFixed(1)} Гц | Нота: ${noteName} | Струна: ${stringDisplay} | Лад: ${fret ?? '?'}`);
+        setDebugInfo(`🎵 Частота: ${avgPitch.toFixed(1)} Гц | Нота: ${noteName} | Струна: ${stringDisplay} | Лад: ${fret ?? '?'}`);
         
         if (stringNum !== undefined && stringNum !== null) {
           const now = Date.now();
           if (now - lastNoteTimeRef.current < 200) return;
           lastNoteTimeRef.current = now;
           
-          onNoteDetected(noteName, stringNum, fret);
+          // Передаём и частоту для проверки в GameEngine
+          onNoteDetected(noteName, stringNum, fret, avgPitch);
         }
       } else {
         setDebugInfo('🎸 Играйте громче...');
+        pitchBufferRef.current = [];
       }
     });
   };
@@ -100,6 +113,7 @@ export default function AudioInput({ onNoteDetected, onMicStatusChange }: AudioI
     setCurrentNote('');
     setCurrentPitch(0);
     setCurrentFret(null);
+    pitchBufferRef.current = [];
     setDebugInfo('⏸ Остановлено');
   };
 

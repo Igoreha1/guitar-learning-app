@@ -224,9 +224,10 @@ export class PitchDetector {
     const pitch = this.autoCorrelate(buffer, this.audioContext!.sampleRate);
     
     if (pitch > 0) {
-      const noteName = this.getNoteName(pitch);
-      this.onPitchDetectedCallback(pitch, noteName);
-    }
+  const noteName = this.getNoteName(pitch);
+  // Возвращаем и частоту, и ноту
+  this.onPitchDetectedCallback(pitch, noteName);
+}
 
     requestAnimationFrame(() => this.detectPitch());
   }

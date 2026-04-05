@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Остальные модели остаются без изменений
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  scores    Score[]
+  favorites Favorite[]
+  progress  Progress[]
+  
+  @@map("users")
+}
+
+model Song {
+  id         String   @id @default(cuid())
+  title      String
+  artist     String
+  bpm        Int
+  difficulty String
+  effect     String?
+  duration   Int
+  tabData    Json?    @map("tab_data")
+  createdAt  DateTime @default(now()) @map("created_at")
+  
+  favorites  Favorite[]
+  scores     Score[]
+  progress   Progress[]
+  
+  @@map("songs")
+}
+
+model Score {
+  id        String   @id @default(cuid())
+  value     Int
+  accuracy  Float
+  maxCombo  Int      @map("max_combo")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  userId    String   @map("user_id")
+  songId    String   @map("song_id")
+  
+  user      User     @relation(fields: [userId], references: [id])
+  song      Song     @relation(fields: [songId], references: [id])
+  
+  @@map("scores")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  userId    String   @map("user_id")
+  songId    String   @map("song_id")
+  
+  user      User     @relation(fields: [userId], references: [id])
+  song      Song     @relation(fields: [songId], references: [id])
+  
+  @@unique([userId, songId])
+  @@map("favorites")
+}
+
+model Progress {
+  id          String    @id @default(cuid())
+  bestScore   Int       @map("best_score")
+  timesPlayed Int       @default(0) @map("times_played")
+  lastPlayed  DateTime? @map("last_played")
+  
+  userId      String    @map("user_id")
+  songId      String    @map("song_id")
+  
+  user        User      @relation(fields: [userId], references: [id])
+  song        Song      @relation(fields: [songId], references: [id])
+  
+  @@unique([userId, songId])
+  @@map("progress")
+}
+
+model Chord {
+  id          String   @id @default(cuid())
+  name        String
+  fullName    String?  @map("full_name")
+  strings     Json?
+  fingers     Json?
+  description String?
+  soundUrl    String?  @map("sound_url")
+  
+  @@map("chords")
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  category    String   // 'lessons' или 'songs'
+  subcategory String
+  excerpt     String   @db.Text
+  content     String   @db.Text
+  image       String
+  author      String
+  readingTime Int
+  tags        Json
+  status      String   @default("published")
+  views       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  @@map("articles")
+}

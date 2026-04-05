@@ -8,18 +8,20 @@ interface BackingTrackPlayerProps {
   isPlaying: boolean;
   onTimeUpdate?: (time: number) => void;
   volume?: number;
+  startTime?: number; // ← добавили startTime
 }
 
 export default function BackingTrackPlayer({ 
   url, 
   isPlaying, 
   onTimeUpdate, 
-  volume = 0.7
+  volume = 0.7,
+  startTime = 0  // ← по умолчанию с начала
 }: BackingTrackPlayerProps) {
   const playerRef = useRef<Tone.Player | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const savedPositionRef = useRef<number>(0);
+  const savedPositionRef = useRef<number>(startTime);
   const isStartedRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -50,21 +52,23 @@ export default function BackingTrackPlayer({
     };
   }, [url]);
 
-  // Запуск/остановка с сохранением позиции
+  // Обновляем стартовую позицию при изменении startTime
+  useEffect(() => {
+    savedPositionRef.current = startTime;
+  }, [startTime]);
+
   useEffect(() => {
     if (!playerRef.current || !isLoaded) return;
     
     const player = playerRef.current;
     
     if (isPlaying) {
-      // Запускаем с сохранённой позиции
       Tone.start().then(() => {
         console.log(`🎵 Запуск минусовки с позиции: ${savedPositionRef.current.toFixed(2)} сек`);
         player.start(undefined, savedPositionRef.current);
         isStartedRef.current = true;
       });
     } else {
-      // Останавливаем и запоминаем позицию
       if (isStartedRef.current && player.state === 'started') {
         const currentPos = player.now();
         console.log(`⏸ Остановка минусовки на позиции: ${currentPos.toFixed(2)} сек`);
@@ -80,34 +84,11 @@ export default function BackingTrackPlayer({
     }
   }, [isPlaying, isLoaded]);
 
-  // Громкость
   useEffect(() => {
     if (playerRef.current) {
       playerRef.current.volume.value = Tone.gainToDb(volume);
     }
   }, [volume]);
-
-  // Обновление времени для внешнего использования
-  useEffect(() => {
-    if (!isPlaying || !onTimeUpdate) return;
-    
-    const interval = setInterval(() => {
-      if (playerRef.current && playerRef.current.state === 'started') {
-        onTimeUpdate(playerRef.current.now());
-      }
-    }, 100);
-    
-    return () => clearInterval(interval);
-  }, [isPlaying, onTimeUpdate]);
-
-  // Сброс позиции (для кнопки сброса)
-  const resetPosition = () => {
-    savedPositionRef.current = 0;
-    if (playerRef.current && playerRef.current.state === 'started') {
-      playerRef.current.stop();
-      isStartedRef.current = false;
-    }
-  };
 
   if (error) {
     return (
