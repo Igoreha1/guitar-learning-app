@@ -2,252 +2,277 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { 
+  TrendingUp, Users, Music, FileText, Guitar, 
+  Star, Award, Calendar, Eye, Clock, ArrowUpRight,
+  Sparkles, Zap, Shield, Activity, Settings
+} from 'lucide-react';
 
 interface Stats {
   songs: number;
   users: number;
   scores: number;
   chords: number;
+  articles: number;
+  views: number;
+  avgScore: number;
 }
 
-interface Song {
-  id: string;
-  title: string;
-  artist: string;
-  bpm: number;
-  difficulty: string;
-  duration: number;
-}
-
-export default function AdminPage() {
-  const [stats, setStats] = useState<Stats>({ songs: 0, users: 0, scores: 0, chords: 0 });
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'songs' | 'users'>('dashboard');
+export default function AdminDashboard() {
+  const [stats, setStats] = useState<Stats>({ 
+    songs: 0, users: 0, scores: 0, chords: 0, articles: 0, views: 0, avgScore: 0 
+  });
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [recentArticles, setRecentArticles] = useState<any[]>([]);
+  const [recentScores, setRecentScores] = useState<any[]>([]);
 
   useEffect(() => {
-    loadData();
+    loadStats();
   }, []);
 
-  const loadData = async () => {
+  const loadStats = async () => {
     try {
-      const [statsRes, songsRes] = await Promise.all([
+      const [statsRes, articlesRes, scoresRes] = await Promise.all([
         fetch('/api/admin/stats'),
-        fetch('/api/admin/songs')
+        fetch('/api/articles?all=true&limit=5'),
+        fetch('/api/admin/recent-scores')
       ]);
-
+      
       const statsData = await statsRes.json();
-      const songsData = await songsRes.json();
-
-      setStats(statsData);
-      setSongs(songsData);
+      setStats({
+        songs: statsData.songs || 0,
+        users: statsData.users || 0,
+        scores: statsData.scores || 0,
+        chords: statsData.chords || 0,
+        articles: statsData.articles || 0,
+        views: statsData.views || 0,
+        avgScore: statsData.avgScore || 0
+      });
+      
+      const articlesData = await articlesRes.json();
+      if (Array.isArray(articlesData)) {
+        setRecentArticles(articlesData.slice(0, 5));
+      }
+      
+      try {
+        const scoresData = await scoresRes.json();
+        if (Array.isArray(scoresData)) {
+          setRecentScores(scoresData.slice(0, 5));
+        }
+      } catch (e) {
+        console.error('Ошибка загрузки рекордов:', e);
+        setRecentScores([]);
+      }
     } catch (error) {
-      console.error('Ошибка загрузки:', error);
+      console.error('Ошибка:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    document.cookie = 'adminAuth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    router.push('/admin/login');
-  };
+  const statCards = [
+    { title: 'Песен', value: stats.songs, icon: Music, gradient: 'from-blue-500 to-blue-600', bg: 'bg-blue-500/10', border: 'border-blue-500/20', trend: '+12%' },
+    { title: 'Пользователей', value: stats.users, icon: Users, gradient: 'from-green-500 to-green-600', bg: 'bg-green-500/10', border: 'border-green-500/20', trend: '+8%' },
+    { title: 'Рекордов', value: stats.scores, icon: Award, gradient: 'from-yellow-500 to-yellow-600', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', trend: '+23%' },
+    { title: 'Аккордов', value: stats.chords, icon: Guitar, gradient: 'from-purple-500 to-purple-600', bg: 'bg-purple-500/10', border: 'border-purple-500/20', trend: '+5%' },
+    { title: 'Статей', value: stats.articles, icon: FileText, gradient: 'from-red-500 to-red-600', bg: 'bg-red-500/10', border: 'border-red-500/20', trend: '+3%' },
+  ];
 
-  const deleteSong = async (id: string) => {
-    if (confirm('Удалить песню?')) {
-      await fetch(`/api/admin/songs?id=${id}`, { method: 'DELETE' });
-      loadData();
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Загрузка...</div>
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-12 h-12 border-3 border-gray-700 border-t-primary rounded-full animate-spin" />
+        <p className="text-gray-400 text-sm">Загрузка данных...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="text-3xl">🔧</div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-800">Админ-панель</h1>
-                <p className="text-xs text-gray-500">Управление контентом</p>
+    <div className="space-y-6">
+      {/* Welcome section */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 border border-primary/20">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+            <span className="text-sm text-primary font-medium">Добро пожаловать</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-1">Панель управления</h1>
+          <p className="text-gray-400 text-sm">Общая статистика и аналитика вашего проекта</p>
+        </div>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {statCards.map((card, index) => (
+          <div
+            key={index}
+            className={`${card.bg} backdrop-blur-sm rounded-xl p-4 border ${card.border} hover:scale-[1.02] transition-all duration-300 group`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${card.gradient} flex items-center justify-center shadow-lg`}>
+                <card.icon className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-green-400">{card.trend}</span>
+                <TrendingUp className="w-3 h-3 text-green-400" />
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-            >
-              Выйти
-            </button>
+            <div className="text-2xl font-bold text-white">{card.value?.toLocaleString() || 0}</div>
+            <div className="text-sm text-gray-400 mt-1">{card.title}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Secondary stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700">
+          <div className="flex items-center gap-2 mb-2">
+            <Eye className="w-4 h-4 text-blue-400" />
+            <span className="text-sm text-gray-400">Всего просмотров</span>
+          </div>
+          <div className="text-2xl font-bold text-white">{stats.views?.toLocaleString() || 0}</div>
+        </div>
+        <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700">
+          <div className="flex items-center gap-2 mb-2">
+            <Activity className="w-4 h-4 text-green-400" />
+            <span className="text-sm text-gray-400">Средний счёт</span>
+          </div>
+          <div className="text-2xl font-bold text-white">{stats.avgScore?.toLocaleString() || 0}</div>
+        </div>
+        <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700">
+          <div className="flex items-center gap-2 mb-2">
+            <Star className="w-4 h-4 text-yellow-400" />
+            <span className="text-sm text-gray-400">Рейтинг платформы</span>
+          </div>
+          <div className="text-2xl font-bold text-white">4.9 <span className="text-sm text-gray-500">/ 5</span></div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent articles */}
+        <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden hover:border-gray-600 transition-all">
+          <div className="px-5 py-4 border-b border-gray-700 flex justify-between items-center">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Последние статьи
+            </h3>
+            <Link href="/admin/articles" className="text-xs text-primary hover:text-primary-dark transition flex items-center gap-1">
+              Все статьи <ArrowUpRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-700">
+            {recentArticles.length === 0 ? (
+              <div className="p-6 text-center text-gray-500 text-sm">Нет статей</div>
+            ) : (
+              recentArticles.map((article: any) => (
+                <div key={article.id} className="px-5 py-3 hover:bg-gray-700/30 transition">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-white truncate">{article.title}</div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(article.createdAt).toLocaleDateString('ru-RU')}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          {article.views || 0}
+                        </span>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${
+                      article.status === 'published' 
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                        : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    }`}>
+                      {article.status === 'published' ? 'Опубликовано' : 'Черновик'}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
-      </header>
 
-      {/* Навигация */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-6">
-          <div className="flex gap-6">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`py-3 px-2 font-medium transition border-b-2 ${
-                activeTab === 'dashboard'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              📊 Дашборд
-            </button>
-            <button
-              onClick={() => setActiveTab('songs')}
-              className={`py-3 px-2 font-medium transition border-b-2 ${
-                activeTab === 'songs'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              🎵 Песни
-            </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`py-3 px-2 font-medium transition border-b-2 ${
-                activeTab === 'users'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              👥 Пользователи
-            </button>
+        {/* Recent scores */}
+        <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden hover:border-gray-600 transition-all">
+          <div className="px-5 py-4 border-b border-gray-700 flex justify-between items-center">
+            <h3 className="font-semibold text-white flex items-center gap-2">
+              <Award className="w-5 h-5 text-primary" />
+              Последние рекорды
+            </h3>
+            <Link href="/admin/scores" className="text-xs text-primary hover:text-primary-dark transition flex items-center gap-1">
+              Все рекорды <ArrowUpRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-700">
+            {recentScores.length === 0 ? (
+              <div className="p-6 text-center text-gray-500 text-sm">Нет рекордов</div>
+            ) : (
+              recentScores.map((score: any, idx: number) => (
+                <div key={idx} className="px-5 py-3 hover:bg-gray-700/30 transition">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-sm font-bold text-primary">#{idx + 1}</span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-white">{score.userName || 'Пользователь'}</div>
+                        <div className="text-xs text-gray-500">{score.songTitle || 'Песня'}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-primary">{score.score || 0}</div>
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(score.createdAt).toLocaleDateString('ru-RU')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
-      {/* Контент */}
-      <div className="container mx-auto px-6 py-8">
-        {activeTab === 'dashboard' && (
-          <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-6">Статистика</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white rounded-xl p-6 shadow-sm">
-                <div className="text-3xl mb-2">🎵</div>
-                <div className="text-2xl font-bold text-gray-800">{stats.songs}</div>
-                <div className="text-sm text-gray-500">Песен</div>
-              </div>
-              <div className="bg-white rounded-xl p-6 shadow-sm">
-                <div className="text-3xl mb-2">👥</div>
-                <div className="text-2xl font-bold text-gray-800">{stats.users}</div>
-                <div className="text-sm text-gray-500">Пользователей</div>
-              </div>
-              <div className="bg-white rounded-xl p-6 shadow-sm">
-                <div className="text-3xl mb-2">🏆</div>
-                <div className="text-2xl font-bold text-gray-800">{stats.scores}</div>
-                <div className="text-sm text-gray-500">Рекордов</div>
-              </div>
-              <div className="bg-white rounded-xl p-6 shadow-sm">
-                <div className="text-3xl mb-2">🎸</div>
-                <div className="text-2xl font-bold text-gray-800">{stats.chords}</div>
-                <div className="text-sm text-gray-500">Аккордов</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'songs' && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Список песен</h2>
-              <Link
-                href="/admin/songs/new"
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-              >
-                + Добавить песню
-              </Link>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Название</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Исполнитель</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">BPM</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Сложность</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Действия</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {songs.map((song) => (
-                    <tr key={song.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-gray-800">{song.title}</td>
-                      <td className="px-6 py-4 text-gray-600">{song.artist}</td>
-                      <td className="px-6 py-4 text-gray-600">{song.bpm}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          song.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
-                          song.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {song.difficulty === 'easy' ? 'Лёгкая' : song.difficulty === 'medium' ? 'Средняя' : 'Сложная'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <Link
-                            href={`/admin/songs/${song.id}`}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            ✏️
-                          </Link>
-                          <button
-                            onClick={() => deleteSong(song.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'users' && (
-          <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-6">Пользователи</h2>
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Имя</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Дата регистрации</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {/* Здесь будут пользователи из БД */}
-                  <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                      Скоро здесь появится список пользователей
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+      {/* Quick actions */}
+      <div className="bg-gray-800/30 rounded-xl p-5 border border-gray-700">
+        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-primary" />
+          Быстрые действия
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Link
+            href="/admin/articles/new"
+            className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg hover:bg-primary/20 transition-all group"
+          >
+            <FileText className="w-5 h-5 text-primary" />
+            <span className="text-sm text-white">Новая статья</span>
+          </Link>
+          <Link
+            href="/admin/songs/new"
+            className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg hover:bg-primary/20 transition-all group"
+          >
+            <Music className="w-5 h-5 text-primary" />
+            <span className="text-sm text-white">Новая песня</span>
+          </Link>
+          <Link
+            href="/admin/users"
+            className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg hover:bg-primary/20 transition-all group"
+          >
+            <Users className="w-5 h-5 text-primary" />
+            <span className="text-sm text-white">Пользователи</span>
+          </Link>
+          <Link
+            href="/admin/settings"
+            className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg hover:bg-primary/20 transition-all group"
+          >
+            <Settings className="w-5 h-5 text-primary" />
+            <span className="text-sm text-white">Настройки</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

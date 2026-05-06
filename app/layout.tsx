@@ -1,28 +1,27 @@
 import type { Metadata } from "next";
+import { Inter, Open_Sans } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import LayoutWrapper from "@/components/LayoutWrapper";
+
+const inter = Inter({ subsets: ["cyrillic", "latin"] });
+const openSans = Open_Sans({ subsets: ["cyrillic", "latin"] });
 
 export const metadata: Metadata = {
   title: "GuitarSync - Разборы песен и уроки на гитаре",
-  description: "Подробные разборы песен с аккордами, уроки на гитаре для начинающих. Схемы переборов и гитарного боя. Метроном онлайн.",
+  description: "Подробные разборы песен с аккордами, уроки на гитаре для начинающих",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="ru">
-      <head>
-        <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet" />
-      </head>
-      <body>
-        <Header />
-        {children}
-        <Footer />
+      <body className={`${inter.className} ${openSans.className} antialiased`}>
+        <LayoutWrapper>
+          {children}
+        </LayoutWrapper>
       </body>
     </html>
   );

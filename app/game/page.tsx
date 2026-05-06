@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { 
+  ChevronRight, Home, Guitar, Music, Heart, Star, 
+  Play, Clock, TrendingUp, Sparkles, Volume2, 
+  Mic, MicOff, Headphones, Zap, Award, Target,
+  ChevronDown, ChevronUp, Search, Filter, X
+} from "lucide-react";
+import Link from "next/link";
 import GameCanvas from "@/features/game/GameCanvas";
-import { gameSongs } from "@/features/game/songs";
 import { GameSong } from "@/features/game/types";
 
 export default function GamePage() {
@@ -12,6 +18,44 @@ export default function GamePage() {
   const [hoveredSong, setHoveredSong] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [songs, setSongs] = useState<GameSong[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favoritesList, setFavoritesList] = useState<string[]>([]);
+  const [showNewRecord, setShowNewRecord] = useState(false);
+
+  // Загружаем песни из API
+  useEffect(() => {
+    const loadSongs = async () => {
+      try {
+        const res = await fetch('/api/game/songs');
+        const data = await res.json();
+        
+        const formattedSongs: GameSong[] = data.map((song: any) => ({
+          id: song.id,
+          title: song.title,
+          artist: song.artist,
+          bpm: song.bpm,
+          notes: song.notes || [],
+          duration: song.duration,
+          difficulty: song.difficulty,
+          effect: song.effect,
+          backingTrack: song.backingTrack,
+          startOffset: song.startOffset || 0,
+          image: song.image
+        }));
+        
+        setSongs(formattedSongs);
+      } catch (error) {
+        console.error('Ошибка загрузки песен:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSongs();
+  }, []);
 
   // Проверяем авторизацию при загрузке
   useEffect(() => {
@@ -28,10 +72,8 @@ export default function GamePage() {
     }
   }, []);
 
-  // Проверяем, добавлена ли песня в избранное
+  // Загружаем избранное
   useEffect(() => {
-    if (!selectedSong) return;
-    
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -41,21 +83,24 @@ export default function GamePage() {
       .then(res => res.json())
       .then(data => {
         if (data.favorites) {
-          const isFav = data.favorites.some((fav: any) => fav.songId === selectedSong.id);
-          setIsFavorite(isFav);
+          setFavoritesList(data.favorites.map((fav: any) => fav.songId));
         }
       })
-      .catch(err => console.error('Ошибка проверки избранного:', err));
-  }, [selectedSong]);
+      .catch(err => console.error('Ошибка загрузки избранного:', err));
+  }, []);
 
-  // При клике на песню — показываем её детали справа
+  // Проверяем, добавлена ли песня в избранное
+  useEffect(() => {
+    if (!selectedSong) return;
+    setIsFavorite(favoritesList.includes(selectedSong.id));
+  }, [selectedSong, favoritesList]);
+
   const handleSongSelect = (song: GameSong) => {
     setSelectedSong(song);
     setGameStarted(false);
     setScore(0);
   };
 
-  // Запуск игры из деталей
   const startGame = () => {
     if (selectedSong) {
       setGameStarted(true);
@@ -63,14 +108,19 @@ export default function GamePage() {
     }
   };
 
-  // Возврат в меню из игры
   const backToMenu = () => {
     setGameStarted(false);
     setSelectedSong(null);
     setScore(0);
   };
 
-  // Добавление/удаление из избранного
+  const handleScoreSaved = (isNewRecord: boolean) => {
+    if (isNewRecord) {
+      setShowNewRecord(true);
+      setTimeout(() => setShowNewRecord(false), 3000);
+    }
+  };
+
   const toggleFavorite = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -80,17 +130,15 @@ export default function GamePage() {
     
     try {
       if (isFavorite) {
-        // Удаляем из избранного
         const res = await fetch(`/api/user/favorites?songId=${selectedSong?.id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
           setIsFavorite(false);
-          alert('Песня удалена из избранного');
+          setFavoritesList(prev => prev.filter(id => id !== selectedSong?.id));
         }
       } else {
-        // Добавляем в избранное
         const res = await fetch('/api/user/favorites', {
           method: 'POST',
           headers: { 
@@ -101,179 +149,324 @@ export default function GamePage() {
         });
         if (res.ok) {
           setIsFavorite(true);
-          alert('Песня добавлена в избранное');
+          setFavoritesList(prev => [...prev, selectedSong!.id]);
         }
       }
     } catch (error) {
       console.error('Ошибка:', error);
-      alert('Произошла ошибка');
     }
   };
 
-  // Если игра запущена — показываем игровое поле
-  if (gameStarted && selectedSong) {
+  // Фильтрация песен
+  const filteredSongs = songs.filter(song => {
+    const matchesSearch = song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          song.artist.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDifficulty = selectedDifficulty === "all" || song.difficulty === selectedDifficulty;
+    const matchesFavorite = !showFavoritesOnly || favoritesList.includes(song.id);
+    return matchesSearch && matchesDifficulty && matchesFavorite;
+  });
+
+  const difficultyConfig = {
+    easy: { label: "Новичок", icon: "🌱", color: "from-green-500 to-green-600", bg: "bg-green-500/10" },
+    medium: { label: "Любитель", icon: "⭐", color: "from-yellow-500 to-yellow-600", bg: "bg-yellow-500/10" },
+    hard: { label: "Профи", icon: "🔥", color: "from-red-500 to-red-600", bg: "bg-red-500/10" }
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 py-10">
-        <div className="container mx-auto px-4">
-          {/* Кнопка назад в меню */}
-          <button
-            onClick={backToMenu}
-            className="mb-6 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
-          >
-            ← ВЕРНУТЬСЯ К ВЫБОРУ ПЕСЕН
-          </button>
-
-          {/* Информация о песне */}
-          <div className="bg-gray-800 rounded-lg p-4 mb-6 flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold text-white">{selectedSong.title}</h2>
-              <p className="text-gray-400">{selectedSong.artist} • {selectedSong.bpm} BPM</p>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-400">ТВОЙ СЧЁТ</div>
-              <div className="text-3xl font-bold text-red-500">{score}</div>
-            </div>
-          </div>
-
-          {/* Игровое поле */}
-          <GameCanvas 
-            song={selectedSong} 
-            onScoreUpdate={setScore}
-            key={selectedSong.id}
-          />
-
-          {/* Инструкция */}
-          <div className="mt-8 bg-gray-800 rounded-lg p-6">
-            <h3 className="text-lg font-bold text-white mb-4">🎮 КАК ИГРАТЬ</h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="text-red-500 font-bold mb-2">Управление (клавиши)</h4>
-                <div className="space-y-2 text-gray-300 text-sm">
-                  <div><kbd className="bg-gray-700 px-2 py-1 rounded">A</kbd> — 6-я струна (E)</div>
-                  <div><kbd className="bg-gray-700 px-2 py-1 rounded">S</kbd> — 5-я струна (A)</div>
-                  <div><kbd className="bg-gray-700 px-2 py-1 rounded">D</kbd> — 4-я струна (D)</div>
-                  <div><kbd className="bg-gray-700 px-2 py-1 rounded">F</kbd> — 3-я струна (G)</div>
-                  <div><kbd className="bg-gray-700 px-2 py-1 rounded">J</kbd> — 2-я струна (B)</div>
-                  <div><kbd className="bg-gray-700 px-2 py-1 rounded">K</kbd> — 1-я струна (E)</div>
-                  <div><kbd className="bg-gray-700 px-2 py-1 rounded">ПРОБЕЛ</kbd> — Старт/Стоп</div>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-green-500 font-bold mb-2">Аккорды в песне</h4>
-                <div className="flex flex-wrap gap-2">
-                  {getUniqueChords(selectedSong).map(chord => (
-                    <span key={chord} className="px-3 py-1 bg-gray-700 rounded-full text-sm text-white">
-                      {chord}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-gray-400 text-sm mt-3">
-                  💡 Для аккордов нужно нажимать все струны одновременно
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Загрузка песен...</p>
         </div>
       </div>
     );
   }
 
-  // Меню выбора песен с деталями справа
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black">
-      {/* Верхняя панель */}
-      <div className="bg-black/50 backdrop-blur-sm border-b border-red-500/30">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="text-4xl">🎸</div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">
-                  GUITAR<span className="text-red-500">SYNC</span>
-                </h1>
-                <p className="text-xs text-gray-400">ВЫБЕРИ ПЕСНЮ ДЛЯ ИГРЫ</p>
-              </div>
+  if (gameStarted && selectedSong) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker">
+        {/* Уведомление о новом рекорде */}
+        {showNewRecord && (
+          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+            <div className="flex items-center gap-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-6 py-3 rounded-full shadow-2xl">
+              <Trophy className="w-5 h-5" />
+              <span className="font-semibold">Новый рекорд! 🏆</span>
+              <Sparkles className="w-4 h-4 animate-pulse" />
             </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-400">ДОСТУПНО ПЕСЕН</div>
-              <div className="text-2xl font-bold text-red-500">{gameSongs.length}</div>
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="bg-dark/80 backdrop-blur-md border-b border-primary/20 sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={backToMenu}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 transition text-gray-300 text-sm"
+                >
+                  ← Назад
+                </button>
+                <div>
+                  <h2 className="text-lg font-bold text-white">{selectedSong.title}</h2>
+                  <p className="text-xs text-gray-400">{selectedSong.artist} • {selectedSong.bpm} BPM</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-gray-400">СЧЁТ</div>
+                <div className="text-3xl font-bold text-primary">{score}</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Основной контент: список слева, детали справа */}
-      <div className="container mx-auto px-6 py-8">
-        <div className="flex gap-8">
-          {/* Левая колонка — список песен */}
-          <div className="w-80 flex-shrink-0">
-            <div className="bg-black/40 backdrop-blur-sm rounded-xl border border-gray-800 overflow-hidden">
-              <div className="p-4 border-b border-gray-800">
-                <h2 className="text-white font-bold flex items-center gap-2">
-                  <span className="text-red-500">🎵</span> БИБЛИОТЕКА ПЕСЕН
-                </h2>
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <GameCanvas 
+            song={selectedSong} 
+            onScoreUpdate={setScore}
+            onScoreSaved={handleScoreSaved}
+            key={selectedSong.id}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker">
+      {/* Hero секция */}
+      <section className="relative overflow-hidden pt-12 pb-8">
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000" />
+        </div>
+        
+        <div className="relative z-10 max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+              <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                <Link href="/" className="hover:text-primary transition-colors flex items-center gap-1">
+                  <Home className="w-4 h-4" />
+                  Главная
+                </Link>
+                <ChevronRight className="w-4 h-4" />
+                <span className="text-gray-300">Игра</span>
               </div>
-              
-              <div className="h-[600px] overflow-y-auto custom-scrollbar">
-                {gameSongs.map((song) => (
-                  <button
-                    key={song.id}
-                    onClick={() => handleSongSelect(song)}
-                    onMouseEnter={() => setHoveredSong(song.id)}
-                    onMouseLeave={() => setHoveredSong(null)}
-                    className={`
-                      w-full text-left p-4 transition-all duration-200 border-l-4
-                      ${selectedSong?.id === song.id 
-                        ? 'border-red-500 bg-red-500/10' 
-                        : hoveredSong === song.id 
-                          ? 'border-red-500/50 bg-red-500/5' 
-                          : 'border-transparent hover:bg-gray-800/30'
-                      }
-                    `}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="font-bold text-white">{song.title}</div>
-                        <div className="text-sm text-gray-400">{song.artist}</div>
-                        <div className="flex items-center gap-3 mt-2 text-xs">
-                          <span className="text-gray-500">{song.bpm} BPM</span>
-                          <span className={`px-2 py-0.5 rounded ${
-                            song.difficulty === 'easy' 
-                              ? 'bg-green-500/20 text-green-400' 
-                              : 'bg-yellow-500/20 text-yellow-400'
-                          }`}>
-                            {song.difficulty === 'easy' ? '⭐ НОВИЧОК' : '⭐⭐ ЛЮБИТЕЛЬ'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-red-500 text-xl">
-                        {hoveredSong === song.id || selectedSong?.id === song.id ? '▶' : ''}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold">
+                <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                  Игровой тренажёр
+                </span>
+                <br />
+                <span className="text-gradient">для гитары</span>
+              </h1>
+              <p className="text-gray-400 mt-2 max-w-lg">
+                Играй в реальном времени, используя микрофон. Следуй за нотами и набирай очки!
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="bg-gray-800/50 rounded-full px-4 py-2 border border-gray-700">
+                <span className="text-sm text-gray-400">🎸 Доступно песен</span>
+                <span className="text-2xl font-bold text-primary ml-2">{filteredSongs.length}</span>
               </div>
             </div>
           </div>
 
-          {/* Правая колонка — детали выбранной песни */}
+          {/* Поиск и фильтры */}
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Поиск песни или исполнителя..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-colors"
+              />
+            </div>
+            <div className="flex gap-2">
+              {["all", "easy", "medium", "hard"].map((diff) => (
+                <button
+                  key={diff}
+                  onClick={() => setSelectedDifficulty(diff)}
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    selectedDifficulty === diff
+                      ? diff === "easy" ? "bg-green-600 text-white"
+                        : diff === "medium" ? "bg-yellow-600 text-white"
+                        : diff === "hard" ? "bg-red-600 text-white"
+                        : "bg-primary text-white"
+                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  }`}
+                >
+                  {diff === "all" ? "Все" : diff === "easy" ? "🌱 Новичок" : diff === "medium" ? "⭐ Любитель" : "🔥 Профи"}
+                </button>
+              ))}
+              <button
+                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-1 ${
+                  showFavoritesOnly
+                    ? "bg-primary text-white"
+                    : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${showFavoritesOnly ? "fill-white" : ""}`} />
+                Избранное
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Список песен и детали */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Левая колонка - список песен */}
+          <div className="lg:w-80 flex-shrink-0">
+            <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden sticky top-24">
+              <div className="p-4 border-b border-gray-700">
+                <h2 className="text-white font-bold flex items-center gap-2">
+                  <Music className="w-5 h-5 text-primary" />
+                  БИБЛИОТЕКА ПЕСЕН
+                </h2>
+              </div>
+              
+              <div className="h-[500px] overflow-y-auto custom-scrollbar">
+                {filteredSongs.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <Music className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">Песен не найдено</p>
+                  </div>
+                ) : (
+                  filteredSongs.map((song) => (
+                    <button
+                      key={song.id}
+                      onClick={() => handleSongSelect(song)}
+                      onMouseEnter={() => setHoveredSong(song.id)}
+                      onMouseLeave={() => setHoveredSong(null)}
+                      className={`
+                        w-full text-left p-4 transition-all duration-200 border-l-4
+                        ${selectedSong?.id === song.id 
+                          ? 'border-primary bg-primary/10' 
+                          : hoveredSong === song.id 
+                            ? 'border-primary/50 bg-gray-700/30' 
+                            : 'border-transparent hover:bg-gray-800/30'
+                        }
+                      `}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="font-bold text-white flex items-center gap-2">
+                            {song.title}
+                            {favoritesList.includes(song.id) && (
+                              <Heart className="w-3 h-3 fill-primary text-primary" />
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-400">{song.artist}</div>
+                          <div className="flex items-center gap-3 mt-2 text-xs">
+                            <span className="text-gray-500">{song.bpm} BPM</span>
+                            <span className={`px-2 py-0.5 rounded ${
+                              song.difficulty === 'easy' 
+                                ? 'bg-green-500/20 text-green-400' 
+                                : song.difficulty === 'medium'
+                                ? 'bg-yellow-500/20 text-yellow-400'
+                                : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {difficultyConfig[song.difficulty].icon} {difficultyConfig[song.difficulty].label}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-primary">
+                          {(hoveredSong === song.id || selectedSong?.id === song.id) && (
+                            <Play className="w-5 h-5" />
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Правая колонка - детали песни */}
           <div className="flex-1">
             {selectedSong ? (
-              <SongDetails 
-                song={selectedSong} 
-                onPlay={startGame}
-                onClose={() => setSelectedSong(null)}
-                isFavorite={isFavorite}
-                onToggleFavorite={toggleFavorite}
-                isLoggedIn={!!user}
-              />
+              <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden">
+                <div className="relative h-48 bg-gradient-to-r from-primary/20 to-purple-500/20 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40" />
+                  <div className="relative z-10 text-center">
+                    <div className="text-6xl mb-2">🎸</div>
+                    <h2 className="text-2xl font-bold text-white">{selectedSong.title}</h2>
+                    <p className="text-gray-300">{selectedSong.artist}</p>
+                  </div>
+                  <button
+                    onClick={toggleFavorite}
+                    className={`absolute top-4 right-4 p-2 rounded-lg transition ${
+                      isFavorite 
+                        ? 'bg-primary/20 text-primary border border-primary/50' 
+                        : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700'
+                    }`}
+                    title={!user ? 'Войдите в аккаунт' : isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
+                  >
+                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-primary' : ''}`} />
+                  </button>
+                </div>
+
+                <div className="p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                      <div className="text-xs text-gray-400 mb-1">ТЕМП</div>
+                      <div className="text-xl font-bold text-white">{selectedSong.bpm} BPM</div>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                      <div className="text-xs text-gray-400 mb-1">ДЛИТЕЛЬНОСТЬ</div>
+                      <div className="text-xl font-bold text-white">{Math.floor(selectedSong.duration)} сек</div>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                      <div className="text-xs text-gray-400 mb-1">СЛОЖНОСТЬ</div>
+                      <div className={`text-xl font-bold ${
+                        selectedSong.difficulty === 'easy' ? 'text-green-400' :
+                        selectedSong.difficulty === 'medium' ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                        {difficultyConfig[selectedSong.difficulty].icon} {difficultyConfig[selectedSong.difficulty].label}
+                      </div>
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                      <div className="text-xs text-gray-400 mb-1">НОТ/АККОРДОВ</div>
+                      <div className="text-xl font-bold text-white">{selectedSong.notes?.length || 0}</div>
+                    </div>
+                  </div>
+
+                  {selectedSong.startOffset && selectedSong.startOffset > 0 && (
+                    <div className="mb-4 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/30 text-center">
+                      <span className="text-xs text-yellow-400">
+                        ⚡ Песня начнётся с {selectedSong.startOffset} секунды (синхронизация)
+                      </span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={startGame}
+                    className="w-full py-4 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                  >
+                    <Play className="w-5 h-5" />
+                    Начать игру
+                  </button>
+
+                  {!user && (
+                    <p className="text-xs text-gray-500 text-center mt-3">
+                      🔐 Войдите в аккаунт, чтобы добавлять песни в избранное
+                    </p>
+                  )}
+                </div>
+              </div>
             ) : (
-              <div className="bg-black/40 backdrop-blur-sm rounded-xl border border-gray-800 p-8 text-center">
+              <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700 p-12 text-center">
                 <div className="text-6xl mb-4">🎸</div>
                 <h3 className="text-xl font-bold text-white mb-2">ДОБРО ПОЖАЛОВАТЬ!</h3>
                 <p className="text-gray-400">
-                  Выбери песню из списка слева<br/>
-                  чтобы увидеть подробную информацию
+                  Выбери песню из списка слева,<br/>
+                  чтобы начать игру
                 </p>
               </div>
             )}
@@ -301,128 +494,5 @@ export default function GamePage() {
   );
 }
 
-// Компонент деталей песни (отображается справа)
-function SongDetails({ 
-  song, 
-  onPlay, 
-  onClose, 
-  isFavorite, 
-  onToggleFavorite,
-  isLoggedIn 
-}: { 
-  song: GameSong; 
-  onPlay: () => void; 
-  onClose: () => void;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
-  isLoggedIn: boolean;
-}) {
-  const chords = getUniqueChords(song);
-  
-  return (
-    <div className="bg-gradient-to-br from-gray-900/80 to-black/80 backdrop-blur-sm rounded-xl border border-gray-800 overflow-hidden">
-      {/* Кнопка закрытия */}
-      <div className="flex justify-end p-4">
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-white transition text-xl"
-        >
-          ✕
-        </button>
-      </div>
-      
-      {/* Обложка */}
-      <div className="relative h-56 bg-gradient-to-r from-red-900/30 to-purple-900/30 flex items-center justify-center mx-4 rounded-xl">
-        <div className="text-8xl opacity-50">🎸</div>
-        <div className="absolute bottom-3 right-3 flex gap-2">
-          <span className="px-2 py-1 bg-black/60 rounded-full text-xs text-gray-300">
-            {song.bpm} BPM
-          </span>
-          <span className={`px-2 py-1 rounded-full text-xs ${
-            song.difficulty === 'easy' 
-              ? 'bg-green-500/60 text-white' 
-              : 'bg-yellow-500/60 text-white'
-          }`}>
-            {song.difficulty === 'easy' ? 'ДЛЯ НАЧИНАЮЩИХ' : 'СРЕДНИЙ УРОВЕНЬ'}
-          </span>
-        </div>
-      </div>
-      
-      {/* Информация */}
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-1">{song.title}</h2>
-            <p className="text-gray-400 text-sm">{song.artist}</p>
-          </div>
-          
-          {/* Кнопка "В избранное" */}
-          <button
-            onClick={onToggleFavorite}
-            className={`px-3 py-2 rounded-lg transition text-sm font-medium ${
-              isFavorite 
-                ? 'bg-red-600/20 text-red-400 border border-red-500/50' 
-                : isLoggedIn 
-                  ? 'bg-gray-800 text-gray-400 hover:bg-gray-700 border border-gray-700' 
-                  : 'bg-gray-800 text-gray-600 cursor-not-allowed'
-            }`}
-            disabled={!isLoggedIn}
-            title={!isLoggedIn ? 'Войдите в аккаунт' : isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
-          >
-            {isFavorite ? '❤️ В избранном' : '🤍 В избранное'}
-          </button>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4 mb-6 mt-4">
-          <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-            <div className="text-xs text-gray-400 mb-1">ДЛИТЕЛЬНОСТЬ</div>
-            <div className="text-xl font-bold text-white">{Math.floor(song.duration)} сек</div>
-          </div>
-          <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-            <div className="text-xs text-gray-400 mb-1">АККОРДОВ</div>
-            <div className="text-xl font-bold text-white">{chords.length}</div>
-          </div>
-        </div>
-        
-        {/* Аккорды */}
-        {chords.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-xs text-gray-400 mb-2">АККОРДЫ В ПЕСНЕ</h3>
-            <div className="flex flex-wrap gap-2">
-              {chords.map(chord => (
-                <span key={chord} className="px-3 py-1.5 bg-gray-800 rounded-lg text-white font-mono text-sm">
-                  {chord}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* Кнопка игры */}
-        <button
-          onClick={onPlay}
-          className="w-full py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold text-lg hover:from-red-700 hover:to-red-800 transition transform hover:scale-105"
-        >
-          🎸 ИГРАТЬ
-        </button>
-        
-        {/* Подсказка для неавторизованных */}
-        {!isLoggedIn && (
-          <p className="text-xs text-gray-500 text-center mt-3">
-            🔐 Войдите в аккаунт, чтобы добавлять песни в избранное
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function getUniqueChords(song: GameSong): string[] {
-  const chords = new Set<string>();
-  song.notes.forEach(note => {
-    if (note.chord) {
-      chords.add(note.chord);
-    }
-  });
-  return Array.from(chords);
-}
+// Добавляем импорт Trophy, так как он используется в уведомлении
+import { Trophy } from "lucide-react";

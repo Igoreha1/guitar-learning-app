@@ -5,6 +5,7 @@ export function middleware(request: NextRequest) {
   const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
   const isAdminLoginPath = request.nextUrl.pathname === '/admin/login';
   
+  // Проверяем только если это админский путь и не страница логина
   if (isAdminPath && !isAdminLoginPath) {
     const adminAuth = request.cookies.get('adminAuth');
     

@@ -5,16 +5,30 @@ import { GameEngine } from "./GameEngine";
 import { GameSong } from "./types";
 import { PitchDetector } from "./PitchDetector";
 import BackingTrackPlayer from "./BackingTrackPlayer";
+import { Trophy, Star, RotateCcw, Home, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 interface GameCanvasProps {
   song: GameSong;
   onScoreUpdate?: (score: number) => void;
+  onGameComplete?: (result: GameResult) => void;
+  onScoreSaved?: (isNewRecord: boolean) => void;
+}
+
+interface GameResult {
+  score: number;
+  maxCombo: number;
+  accuracy: number;
+  hitNotes: number;
+  totalNotes: number;
 }
 
 interface Particle {
   x: number;
   y: number;
   life: number;
+  vx: number;
+  vy: number;
 }
 
 const stringColors = [
@@ -25,17 +39,25 @@ const fingerColors: { [key: number]: string } = {
   1: "#3498db", 2: "#2ecc71", 3: "#f39c12", 4: "#9b59b6"
 };
 
-export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
+type EffectType = "clean" | "distortion" | "reverb";
+
+export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScoreSaved }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [gameState, setGameState] = useState({
     score: 0,
     combo: 0,
     accuracy: 100,
-    isPlaying: false
+    isPlaying: false,
+    hitNotes: 0,
+    totalNotes: 0
   });
   const [lastHitFeedback, setLastHitFeedback] = useState<{ note: string; isHit: boolean; accuracy: number; fret?: number } | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [showCompleteScreen, setShowCompleteScreen] = useState(false);
+  const [showNewRecord, setShowNewRecord] = useState(false);
+  const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const [confetti, setConfetti] = useState<Particle[]>([]);
   
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isCountdownActive, setIsCountdownActive] = useState(false);
@@ -51,10 +73,108 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
   const [isMicConnected, setIsMicConnected] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [monitoringVolume, setMonitoringVolume] = useState(0.7);
-  const [currentEffect, setCurrentEffect] = useState(song.effect || 'clean');
+  const [currentEffect, setCurrentEffect] = useState<EffectType>(song.effect || 'clean');
   const [debugNote, setDebugNote] = useState('');
   const [debugInfo, setDebugInfo] = useState('Ожидание');
   const detectorRef = useRef<PitchDetector | null>(null);
+
+  // Сохранение рекорда
+  const saveScoreToServer = async (result: GameResult) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('Пользователь не авторизован, рекорд не сохранён');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/user/scores', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          songId: song.id,
+          score: result.score,
+          accuracy: result.accuracy,
+          maxCombo: result.maxCombo
+        })
+      });
+
+      const data = await res.json();
+      if (data.isNewRecord) {
+        setShowNewRecord(true);
+        setTimeout(() => setShowNewRecord(false), 3000);
+        onScoreSaved?.(true);
+      }
+    } catch (error) {
+      console.error('Ошибка сохранения рекорда:', error);
+    }
+  };
+
+  // Создание конфетти
+  const createConfetti = () => {
+    const newConfetti: Particle[] = [];
+    for (let i = 0; i < 150; i++) {
+      newConfetti.push({
+        x: Math.random() * 1000,
+        y: -20 - Math.random() * 100,
+        life: 1,
+        vx: (Math.random() - 0.5) * 4,
+        vy: Math.random() * 5 + 3,
+      });
+    }
+    setConfetti(newConfetti);
+    
+    const animateConfetti = setInterval(() => {
+      setConfetti(prev => {
+        const updated = prev.map(p => ({
+          ...p,
+          x: p.x + p.vx,
+          y: p.y + p.vy,
+          life: p.life - 0.01
+        })).filter(p => p.life > 0);
+        
+        if (updated.length === 0) {
+          clearInterval(animateConfetti);
+        }
+        return updated;
+      });
+    }, 16);
+  };
+
+  // Проверка завершения игры
+  useEffect(() => {
+    if (engineRef.current && gameState.isPlaying && isGameReady) {
+      const checkCompletion = setInterval(() => {
+        const currentTime = engineRef.current?.getCurrentTime() || 0;
+        const totalDuration = song.duration;
+        const currentHitNotes = engineRef.current?.state.hitNotes || 0;
+        
+        if (currentTime >= totalDuration - 0.5 || currentHitNotes >= gameState.totalNotes) {
+          const result = {
+            score: gameState.score,
+            maxCombo: gameState.combo,
+            accuracy: gameState.accuracy,
+            hitNotes: gameState.hitNotes,
+            totalNotes: gameState.totalNotes
+          };
+          setGameResult(result);
+          setShowCompleteScreen(true);
+          createConfetti();
+          onGameComplete?.(result);
+          saveScoreToServer(result);
+          
+          engineRef.current?.stop();
+          setShouldPlayBackingTrack(false);
+          setIsGameReady(false);
+          setGameState(prev => ({ ...prev, isPlaying: false }));
+        }
+      }, 500);
+      
+      return () => clearInterval(checkCompletion);
+    }
+  }, [gameState.isPlaying, isGameReady, song.duration, gameState.score, gameState.combo, gameState.accuracy, gameState.hitNotes, gameState.totalNotes, onGameComplete, onScoreSaved]);
 
   // Инициализация микрофона
   useEffect(() => {
@@ -65,10 +185,9 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
         detectorRef.current = detector;
         setIsMicConnected(true);
         setDebugInfo('Микрофон готов');
-        // Применяем эффект песни
         if (song.effect) {
           detector.applyEffect(song.effect);
-          setCurrentEffect(song.effect);
+          setCurrentEffect(song.effect as EffectType);
         }
       } else {
         setIsMicConnected(false);
@@ -83,7 +202,7 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
         detectorRef.current.cleanup();
       }
     };
-  }, []);
+  }, [song.effect]);
 
   // Автоматическое распознавание
   useEffect(() => {
@@ -111,6 +230,9 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
       engineRef.current?.stop();
     }
     
+    setShowCompleteScreen(false);
+    setGameResult(null);
+    setConfetti([]);
     setIsStarting(true);
     setCountdown(3);
     setIsCountdownActive(true);
@@ -172,12 +294,14 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
     setIsGameReady(false);
     setIsStarting(false);
     setSavedTime(0);
+    setShowCompleteScreen(false);
+    setGameResult(null);
+    setConfetti([]);
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
     }
   };
 
-  // Управление мониторингом
   const toggleMonitoring = () => {
     if (!detectorRef.current) return;
     
@@ -198,7 +322,7 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
     }
   };
 
-  const changeEffect = (effect: string) => {
+  const changeEffect = (effect: EffectType) => {
     if (!detectorRef.current) return;
     detectorRef.current.applyEffect(effect);
     setCurrentEffect(effect);
@@ -221,7 +345,9 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
         score: state.score,
         combo: state.combo,
         accuracy: state.accuracy,
-        isPlaying: state.isPlaying
+        isPlaying: state.isPlaying,
+        hitNotes: state.hitNotes,
+        totalNotes: state.totalNotes
       });
       onScoreUpdate?.(state.score);
     });
@@ -240,7 +366,9 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
         newParticles.push({
           x: Math.random() * 1000,
           y: 470 + Math.random() * 40,
-          life: 1
+          life: 1,
+          vx: (Math.random() - 0.5) * 5,
+          vy: (Math.random() - 0.5) * 5
         });
       }
       setParticles(prev => [...prev, ...newParticles]);
@@ -268,6 +396,22 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
     };
   }, [song, onScoreUpdate]);
 
+  // Анимация частиц
+  useEffect(() => {
+    if (particles.length === 0) return;
+    
+    const animateParticles = setInterval(() => {
+      setParticles(prev => prev.map(p => ({
+        ...p,
+        x: p.x + p.vx,
+        y: p.y + p.vy,
+        life: p.life - 0.02
+      })).filter(p => p.life > 0));
+    }, 50);
+    
+    return () => clearInterval(animateParticles);
+  }, [particles]);
+
   // Отрисовка канваса
   useEffect(() => {
     let animationId: number;
@@ -286,9 +430,38 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
       const activeNotes = engine.getActiveNotes();
       
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, "#0a0a1a");
+      gradient.addColorStop(0, "#0a0a2e");
+      gradient.addColorStop(0.3, "#1a0a2e");
+      gradient.addColorStop(0.6, "#0a0a2e");
       gradient.addColorStop(1, "#050510");
       ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 10; i++) {
+        const y = (height / 10) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      
+      for (let i = 0; i < 30; i++) {
+        const time = Date.now() / 1000;
+        const x = (i * 137) % width;
+        const y = (time * 20 + i * 43) % height;
+        ctx.fillStyle = `rgba(231, 76, 60, ${0.03 + Math.sin(time + i) * 0.02})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      const glowGradient = ctx.createLinearGradient(0, 0, width, 0);
+      glowGradient.addColorStop(0, "rgba(231, 76, 60, 0.05)");
+      glowGradient.addColorStop(0.5, "rgba(231, 76, 60, 0)");
+      glowGradient.addColorStop(1, "rgba(231, 76, 60, 0.05)");
+      ctx.fillStyle = glowGradient;
       ctx.fillRect(0, 0, width, height);
       
       const stringWidth = width / 6;
@@ -318,7 +491,7 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
         ctx.fillText(keys[i], x - 6, height - 25);
       }
       
-      if (!isCountdownActive && !isPaused && isGameReady) {
+      if (!isCountdownActive && !isPaused && isGameReady && !showCompleteScreen) {
         activeNotes.forEach(note => {
           const timeToHit = note.time - currentTimeVal;
           const y = height - 80 - (timeToHit * 350);
@@ -419,7 +592,7 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
         ctx.shadowBlur = 0;
       }
       
-      if (lastHitFeedback && !isCountdownActive && !isPaused && isGameReady) {
+      if (lastHitFeedback && !isCountdownActive && !isPaused && isGameReady && !showCompleteScreen) {
         if (lastHitFeedback.isHit) {
           ctx.fillStyle = "#2ecc71";
           ctx.font = "bold 32px 'Orbitron', monospace";
@@ -451,12 +624,126 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
         ctx.fill();
       });
       
+      confetti.forEach(c => {
+        ctx.fillStyle = `rgba(255, 200, 100, ${c.life})`;
+        ctx.beginPath();
+        ctx.rect(c.x, c.y, 6, 6);
+        ctx.fill();
+      });
+      
       animationId = requestAnimationFrame(draw);
     };
     
     draw();
     return () => cancelAnimationFrame(animationId);
-  }, [lastHitFeedback, gameState.isPlaying, particles, isCountdownActive, countdown, isPaused, isGameReady]);
+  }, [lastHitFeedback, gameState.isPlaying, particles, isCountdownActive, countdown, isPaused, isGameReady, showCompleteScreen, confetti, gameState.combo]);
+
+  const getRating = (accuracy: number) => {
+    if (accuracy >= 95) return { name: "PERFECT!", icon: "🏆", color: "text-yellow-400" };
+    if (accuracy >= 80) return { name: "GREAT!", icon: "⭐", color: "text-blue-400" };
+    if (accuracy >= 70) return { name: "GOOD!", icon: "👍", color: "text-green-400" };
+    return { name: "NICE TRY!", icon: "🎸", color: "text-gray-400" };
+  };
+
+  if (showCompleteScreen && gameResult) {
+    const rating = getRating(gameResult.accuracy);
+    const starsCount = Math.floor(gameResult.accuracy / 20);
+    
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-fade-in-up">
+        <div className="relative max-w-2xl w-full mx-4">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {[...Array(30)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-primary rounded-full animate-ping"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 3}s`,
+                  animationDuration: `${1 + Math.random() * 2}s`
+                }}
+              />
+            ))}
+          </div>
+          
+          <div className="relative bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl border border-primary/30 shadow-2xl overflow-hidden">
+            <div className="h-2 bg-gradient-to-r from-primary via-yellow-500 to-primary animate-gradient" />
+            
+            <div className="p-8 text-center">
+              <div className="mb-6">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full mb-4">
+                  <Trophy className="w-10 h-10 text-primary" />
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-2">Поздравляем!</h2>
+                <p className="text-gray-400">Вы успешно завершили песню</p>
+              </div>
+              
+              <div className="mb-6 p-4 bg-primary/10 rounded-xl border border-primary/20">
+                <h3 className="text-xl font-bold text-white">{song.title}</h3>
+                <p className="text-sm text-gray-400">{song.artist}</p>
+              </div>
+              
+              <div className="mb-6">
+                <div className={`text-4xl font-bold ${rating.color} mb-2`}>
+                  {rating.icon} {rating.name}
+                </div>
+                <div className="flex justify-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`w-6 h-6 ${i < starsCount ? 'fill-yellow-500 text-yellow-500' : 'text-gray-600'}`} />
+                  ))}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="bg-gray-800/50 rounded-xl p-3 text-center">
+                  <div className="text-2xl mb-1">🎵</div>
+                  <div className="text-xl font-bold text-white">{gameResult.score}</div>
+                  <div className="text-xs text-gray-500">ОЧКИ</div>
+                </div>
+                <div className="bg-gray-800/50 rounded-xl p-3 text-center">
+                  <div className="text-2xl mb-1">⚡</div>
+                  <div className="text-xl font-bold text-white">{gameResult.maxCombo}</div>
+                  <div className="text-xs text-gray-500">МАКС. КОМБО</div>
+                </div>
+                <div className="bg-gray-800/50 rounded-xl p-3 text-center">
+                  <div className="text-2xl mb-1">🎯</div>
+                  <div className="text-xl font-bold text-white">{Math.floor(gameResult.accuracy)}%</div>
+                  <div className="text-xs text-gray-500">ТОЧНОСТЬ</div>
+                </div>
+                <div className="bg-gray-800/50 rounded-xl p-3 text-center">
+                  <div className="text-2xl mb-1">🎸</div>
+                  <div className="text-xl font-bold text-white">{gameResult.hitNotes}/{gameResult.totalNotes}</div>
+                  <div className="text-xs text-gray-500">ПОПАДАНИЯ</div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => {
+                    resetGame();
+                    startWithCountdown();
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  ИГРАТЬ СНОВА
+                </button>
+                <Link
+                  href="/game"
+                  onClick={() => resetGame()}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-white rounded-xl font-semibold hover:bg-gray-700 transition-all"
+                >
+                  <Home className="w-4 h-4" />
+                  ВЫБОР ПЕСЕН
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const fingerLegend = [
     { finger: 1, color: "#3498db", name: "указательный" },
@@ -467,7 +754,18 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
 
   return (
     <div className="rounded-xl overflow-hidden shadow-2xl border border-red-500/30">
-      <canvas ref={canvasRef} width={1000} height={550} className="w-full" style={{ background: "#0a0a1a" }} />
+      {/* Уведомление о новом рекорде */}
+      {showNewRecord && (
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+          <div className="flex items-center gap-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-6 py-3 rounded-full shadow-2xl">
+            <Trophy className="w-5 h-5" />
+            <span className="font-semibold">Новый рекорд! 🏆</span>
+            <Sparkles className="w-4 h-4 animate-pulse" />
+          </div>
+        </div>
+      )}
+
+      <canvas ref={canvasRef} width={1000} height={550} className="w-full" style={{ background: "#0a0a2e" }} />
       
       <div className="bg-gradient-to-r from-gray-900 to-gray-950 p-4 flex justify-between items-center flex-wrap gap-4">
         <div className="flex gap-8">
@@ -485,6 +783,12 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
             <div className="text-xs text-gray-500 tracking-wider">ТОЧНОСТЬ</div>
             <div className="text-3xl font-bold text-green-500 font-mono">{Math.floor(gameState.accuracy)}%</div>
           </div>
+          <div className="text-center hidden md:block">
+            <div className="text-xs text-gray-500 tracking-wider">ПРОГРЕСС</div>
+            <div className="text-lg font-bold text-white">
+              {gameState.hitNotes}/{gameState.totalNotes}
+            </div>
+          </div>
         </div>
         
         <div className="hidden md:block w-64">
@@ -495,12 +799,12 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
         </div>
         
         <div className="flex gap-3">
-          {!gameState.isPlaying && !isPaused && !isCountdownActive && !isStarting && (
+          {!gameState.isPlaying && !isPaused && !isCountdownActive && !isStarting && !showCompleteScreen && (
             <button onClick={startWithCountdown} className="px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-bold hover:from-green-700 hover:to-green-800 transition shadow-lg">
               ▶ СТАРТ
             </button>
           )}
-          {gameState.isPlaying && (
+          {gameState.isPlaying && !showCompleteScreen && (
             <button onClick={pauseGame} className="px-5 py-2 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white rounded-lg font-bold hover:from-yellow-700 hover:to-yellow-800 transition shadow-lg">
               ⏸ ПАУЗА
             </button>
@@ -612,7 +916,8 @@ export default function GameCanvas({ song, onScoreUpdate }: GameCanvasProps) {
           <BackingTrackPlayer 
             url={song.backingTrack} 
             isPlaying={shouldPlayBackingTrack} 
-            volume={backingTrackVolume} // ← передаём смещение
+            volume={backingTrackVolume}
+            startTime={song.startOffset || 0}
           />
         </div>
       )}

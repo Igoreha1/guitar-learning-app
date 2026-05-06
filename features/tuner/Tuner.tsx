@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import { Mic, MicOff, CheckCircle, AlertCircle, Volume2, VolumeX, RefreshCw, Play, Square } from 'lucide-react';
 
-// PitchDetector класс
+// PitchDetector класс (оставлен без изменений)
 class PitchDetector {
   private audioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
@@ -137,25 +138,30 @@ class PitchDetector {
 
 interface TunerProps {
   onTuneComplete?: () => void;
+  onMicPermission?: (granted: boolean) => void;
+  isMuted?: boolean;
 }
 
 const STRINGS = [
-  { note: 'E2', name: '6-я струна', frequency: 82.41, color: '#e74c3c', isTuned: false },
-  { note: 'A2', name: '5-я струна', frequency: 110.00, color: '#e67e22', isTuned: false },
-  { note: 'D3', name: '4-я струна', frequency: 146.83, color: '#f39c12', isTuned: false },
-  { note: 'G3', name: '3-я струна', frequency: 196.00, color: '#2ecc71', isTuned: false },
-  { note: 'B3', name: '2-я струна', frequency: 246.94, color: '#3498db', isTuned: false },
-  { note: 'E4', name: '1-я струна', frequency: 329.63, color: '#9b59b6', isTuned: false }
+  { note: 'E2', name: '6-я струна', shortName: 'E', frequency: 82.41, color: '#ef4444', colorLight: 'rgba(239, 68, 68, 0.1)' },
+  { note: 'A2', name: '5-я струна', shortName: 'A', frequency: 110.00, color: '#f97316', colorLight: 'rgba(249, 115, 22, 0.1)' },
+  { note: 'D3', name: '4-я струна', shortName: 'D', frequency: 146.83, color: '#eab308', colorLight: 'rgba(234, 179, 8, 0.1)' },
+  { note: 'G3', name: '3-я струна', shortName: 'G', frequency: 196.00, color: '#22c55e', colorLight: 'rgba(34, 197, 94, 0.1)' },
+  { note: 'B3', name: '2-я струна', shortName: 'B', frequency: 246.94, color: '#3b82f6', colorLight: 'rgba(59, 130, 246, 0.1)' },
+  { note: 'E4', name: '1-я струна', shortName: 'e', frequency: 329.63, color: '#a855f7', colorLight: 'rgba(168, 85, 247, 0.1)' }
 ];
 
-export default function Tuner({ onTuneComplete }: TunerProps) {
+export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false }: TunerProps) {
   const [isListening, setIsListening] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [currentNote, setCurrentNote] = useState('');
   const [currentFrequency, setCurrentFrequency] = useState(0);
   const [currentStringIndex, setCurrentStringIndex] = useState<number | null>(null);
   const [deviation, setDeviation] = useState(0);
   const [tunedStrings, setTunedStrings] = useState<boolean[]>([false, false, false, false, false, false]);
+  const [volume, setVolume] = useState(0);
   const detectorRef = useRef<PitchDetector | null>(null);
+  const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
     const initMic = async () => {
@@ -164,8 +170,11 @@ export default function Tuner({ onTuneComplete }: TunerProps) {
       
       if (success) {
         detectorRef.current = detector;
+        setIsInitialized(true);
+        onMicPermission?.(true);
         console.log("Микрофон готов");
       } else {
+        onMicPermission?.(false);
         console.log("Не удалось получить доступ к микрофону");
       }
     };
@@ -177,8 +186,21 @@ export default function Tuner({ onTuneComplete }: TunerProps) {
         detectorRef.current.stopDetection();
         detectorRef.current.cleanup();
       }
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     };
-  }, []);
+  }, [onMicPermission]);
+
+  // Анимация уровня громкости
+  useEffect(() => {
+    if (isListening && isInitialized) {
+      const interval = setInterval(() => {
+        setVolume(prev => Math.max(0, prev - 0.05));
+      }, 100);
+      return () => clearInterval(interval);
+    }
+  }, [isListening, isInitialized]);
 
   const startListening = () => {
     if (!detectorRef.current) {
@@ -192,6 +214,10 @@ export default function Tuner({ onTuneComplete }: TunerProps) {
       if (pitch > 0) {
         setCurrentFrequency(pitch);
         setCurrentNote(noteName);
+        
+        // Рассчитываем громкость для визуализации
+        const vol = Math.min(1, pitch / 500);
+        setVolume(vol);
         
         // Находим ближайшую струну
         let closestIndex = -1;
@@ -239,241 +265,338 @@ export default function Tuner({ onTuneComplete }: TunerProps) {
     setCurrentNote('');
     setCurrentFrequency(0);
     setCurrentStringIndex(null);
+    setVolume(0);
   };
 
   const resetTuner = () => {
     setTunedStrings([false, false, false, false, false, false]);
     setDeviation(0);
+    setCurrentStringIndex(null);
+    setCurrentNote('');
+    setCurrentFrequency(0);
   };
 
   // Угол стрелки (от -45 до +45 градусов)
   const getNeedleRotation = () => {
-    const maxAngle = 45;
-    const clamped = Math.max(-maxAngle, Math.min(maxAngle, deviation * 3));
+    const maxAngle = 50;
+    const clamped = Math.max(-maxAngle, Math.min(maxAngle, deviation * 2.5));
     return clamped;
   };
 
   const rotation = getNeedleRotation();
+  const tunedCount = tunedStrings.filter(v => v === true).length;
+  const allTuned = tunedCount === 6;
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Заголовок */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          🎸 Гитарный тюнер
-        </h1>
-        <p className="text-gray-600">
-          Настройте гитару с помощью микрофона
-        </p>
+    <div>
+      {/* Статус микрофона */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`} />
+          <span className="text-sm text-gray-400">
+            {isListening ? 'Микрофон активен' : 'Микрофон ожидает'}
+          </span>
+        </div>
+        {isListening && (
+          <div className="flex items-center gap-1">
+            {[0, 1, 2, 3].map(i => (
+              <div
+                key={i}
+                className="w-1 h-4 bg-primary rounded-full transition-all duration-100"
+                style={{ height: `${volume * 20 * (i + 1)}px`, opacity: volume * (i + 1) }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Основной блок с круглым тюнером */}
-      <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-        {/* Кнопка включения/выключения */}
-        <div className="flex justify-center mb-8">
-          {!isListening ? (
-            <button
-              onClick={startListening}
-              className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full hover:from-green-600 hover:to-green-700 transition font-bold text-lg shadow-lg"
-            >
-              🎤 Включить тюнер
-            </button>
-          ) : (
-            <button
-              onClick={stopListening}
-              className="px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full hover:from-red-600 hover:to-red-700 transition font-bold text-lg shadow-lg"
-            >
-              ⏸ Остановить
-            </button>
-          )}
-        </div>
+      {/* Кнопка включения/выключения */}
+      <div className="flex justify-center mb-8">
+        {!isListening ? (
+          <button
+            onClick={startListening}
+            disabled={!isInitialized}
+            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Mic className="w-5 h-5" />
+            Включить тюнер
+            <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        ) : (
+          <button
+            onClick={stopListening}
+            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+          >
+            <Square className="w-5 h-5" />
+            Остановить
+            <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+        )}
+      </div>
 
-        {/* Круглый тюнер */}
-        <div className="relative mb-8">
-          <div className="relative w-72 h-72 mx-auto">
-            {/* Фоновый круг */}
-            <div className="absolute inset-0 rounded-full bg-gray-100 shadow-inner"></div>
+      {/* Круглый тюнер */}
+      <div className="relative mb-10">
+        <div className="relative w-80 h-80 mx-auto">
+          {/* Фоновый круг */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-gray-dark to-dark shadow-2xl" />
+          
+          {/* Градуированная шкала */}
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200">
+            {/* Левая дуга (ниже) */}
+            <path
+              d="M 100 25 A 75 75 0 0 1 25 100"
+              fill="none"
+              stroke="#ef4444"
+              strokeWidth="4"
+              strokeLinecap="round"
+              opacity="0.6"
+            />
+            {/* Правая дуга (выше) */}
+            <path
+              d="M 100 25 A 75 75 0 0 0 175 100"
+              fill="none"
+              stroke="#22c55e"
+              strokeWidth="4"
+              strokeLinecap="round"
+              opacity="0.6"
+            />
+            {/* Центральная зона (зелёная) */}
+            <path
+              d="M 100 28 A 72 72 0 0 1 28 100"
+              fill="none"
+              stroke="#22c55e"
+              strokeWidth="12"
+              strokeLinecap="round"
+              opacity="0.3"
+            />
+            <path
+              d="M 100 28 A 72 72 0 0 0 172 100"
+              fill="none"
+              stroke="#22c55e"
+              strokeWidth="12"
+              strokeLinecap="round"
+              opacity="0.3"
+            />
             
-            {/* Градуированная шкала */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200">
-              {/* Левая дуга (ниже) */}
-              <path
-                d="M 100 25 A 75 75 0 0 1 25 100"
-                fill="none"
-                stroke="#e74c3c"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              {/* Правая дуга (выше) */}
-              <path
-                d="M 100 25 A 75 75 0 0 0 175 100"
-                fill="none"
-                stroke="#2ecc71"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              {/* Метки */}
-              <line x1="100" y1="25" x2="100" y2="40" stroke="#333" strokeWidth="2"/>
-              <line x1="25" y1="100" x2="40" y2="100" stroke="#e74c3c" strokeWidth="2"/>
-              <line x1="175" y1="100" x2="160" y2="100" stroke="#2ecc71" strokeWidth="2"/>
-              
-              {/* Цифры */}
-              <text x="38" y="85" fontSize="9" fill="#e74c3c">-30</text>
-              <text x="155" y="85" fontSize="9" fill="#2ecc71">+30</text>
-              <text x="93" y="38" fontSize="10" fill="#333" fontWeight="bold">0</text>
-            </svg>
+            {/* Метки шкалы */}
+            {[-30, -20, -10, 0, 10, 20, 30].map((val) => {
+              const angle = val * 0.9; // преобразуем в градусы
+              const rad = (angle - 90) * Math.PI / 180;
+              const r1 = 65;
+              const r2 = 75;
+              const x1 = 100 + r1 * Math.cos(rad);
+              const y1 = 100 + r1 * Math.sin(rad);
+              const x2 = 100 + r2 * Math.cos(rad);
+              const y2 = 100 + r2 * Math.sin(rad);
+              const color = val === 0 ? '#22c55e' : (val < 0 ? '#ef4444' : '#22c55e');
+              return (
+                <line key={val} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={val === 0 ? 3 : 1.5} />
+              );
+            })}
             
-            {/* Стрелка */}
-            <div
-              className="absolute left-1/2 bottom-1/2 w-1.5 h-28 bg-gradient-to-t from-red-600 to-red-500 origin-bottom transform -translate-x-1/2 transition-all duration-100"
-              style={{
-                transform: `translateX(-50%) rotate(${rotation}deg)`,
-                transformOrigin: 'bottom center',
-                boxShadow: '0 0 8px rgba(231, 76, 60, 0.8)',
-                borderRadius: '4px'
-              }}
-            ></div>
-            
-            {/* Центральная точка */}
-            <div className="absolute top-1/2 left-1/2 w-5 h-5 bg-red-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 shadow-lg"></div>
+            {/* Текст меток */}
+            <text x="32" y="85" fontSize="8" fill="#ef4444" opacity="0.7" textAnchor="middle">-30</text>
+            <text x="42" y="70" fontSize="8" fill="#ef4444" opacity="0.5" textAnchor="middle">-20</text>
+            <text x="55" y="58" fontSize="8" fill="#ef4444" opacity="0.3" textAnchor="middle">-10</text>
+            <text x="168" y="85" fontSize="8" fill="#22c55e" opacity="0.7" textAnchor="middle">+30</text>
+            <text x="158" y="70" fontSize="8" fill="#22c55e" opacity="0.5" textAnchor="middle">+20</text>
+            <text x="145" y="58" fontSize="8" fill="#22c55e" opacity="0.3" textAnchor="middle">+10</text>
+            <text x="93" y="38" fontSize="10" fill="#fff" fontWeight="bold" textAnchor="middle">0</text>
+          </svg>
+          
+          {/* Стрелка */}
+          <div
+            className="absolute left-1/2 bottom-1/2 w-2 h-32 bg-gradient-to-t from-primary to-primary-dark origin-bottom transform -translate-x-1/2 transition-all duration-75"
+            style={{
+              transform: `translateX(-50%) rotate(${rotation}deg)`,
+              transformOrigin: 'bottom center',
+              boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)',
+              borderRadius: '4px'
+            }}
+          />
+          
+          {/* Тень стрелки */}
+          <div
+            className="absolute left-1/2 bottom-1/2 w-1 h-32 bg-white/20 origin-bottom transform -translate-x-1/2 transition-all duration-75 blur-sm"
+            style={{
+              transform: `translateX(-50%) rotate(${rotation}deg)`,
+              transformOrigin: 'bottom center',
+            }}
+          />
+          
+          {/* Центральная точка */}
+          <div className="absolute top-1/2 left-1/2 w-6 h-6 bg-gradient-to-br from-primary to-primary-dark rounded-full transform -translate-x-1/2 -translate-y-1/2 shadow-lg">
+            <div className="absolute inset-1 bg-dark rounded-full" />
           </div>
           
-          {/* Текущая нота */}
-          <div className="text-center mt-6">
-            <div className="text-sm text-gray-500 mb-1">СЫГРАННАЯ НОТА</div>
-            <div className="text-5xl font-bold text-gray-800 mb-2">
-              {currentNote || '—'}
+          {/* Анимированная пульсация при звуке */}
+          {isListening && volume > 0.1 && (
+            <div 
+              className="absolute top-1/2 left-1/2 rounded-full bg-primary/20 transform -translate-x-1/2 -translate-y-1/2 animate-ping"
+              style={{ width: `${60 + volume * 80}px`, height: `${60 + volume * 80}px` }}
+            />
+          )}
+        </div>
+        
+        {/* Текущая нота */}
+        <div className="text-center mt-6">
+          <div className="text-xs text-gray-500 mb-1 tracking-wider">СЫГРАННАЯ НОТА</div>
+          <div className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent mb-3">
+            {currentNote || '—'}
+          </div>
+          {currentFrequency > 0 && (
+            <div className="text-sm text-gray-500">
+              {currentFrequency.toFixed(1)} Гц
             </div>
-            {currentFrequency > 0 && (
-              <div className="text-sm text-gray-500">
-                {currentFrequency.toFixed(1)} Гц
+          )}
+        </div>
+      </div>
+
+      {/* Информация о текущей струне */}
+      {currentStringIndex !== null && (
+        <div className="text-center mb-8 animate-fade-in-up">
+          <div 
+            className="inline-flex flex-col items-center gap-2 px-8 py-4 rounded-2xl"
+            style={{ background: STRINGS[currentStringIndex].colorLight, border: `1px solid ${STRINGS[currentStringIndex].color}40` }}
+          >
+            <span 
+              className="text-2xl font-bold"
+              style={{ color: STRINGS[currentStringIndex].color }}
+            >
+              {STRINGS[currentStringIndex].name}
+            </span>
+            <span className="text-sm text-gray-400">{STRINGS[currentStringIndex].note}</span>
+          </div>
+          
+          <div className="mt-4">
+            {Math.abs(deviation) < 1.5 ? (
+              <div className="inline-flex items-center gap-2 px-5 py-2 bg-green-500/20 text-green-400 rounded-full font-semibold border border-green-500/30">
+                <CheckCircle className="w-4 h-4" />
+                Идеально! Струна настроена
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 text-gray-400 font-medium">
+                {deviation > 0 ? (
+                  <>↑ Натяните струну выше <span className="text-red-400">({Math.abs(deviation).toFixed(1)}%)</span></>
+                ) : (
+                  <>↓ Ослабьте струну ниже <span className="text-red-400">({Math.abs(deviation).toFixed(1)}%)</span></>
+                )}
               </div>
             )}
           </div>
         </div>
+      )}
 
-        {/* Информация о текущей струне */}
-        {currentStringIndex !== null && (
-          <div className="text-center mb-6">
-            <div 
-              className="inline-block px-6 py-3 rounded-full font-bold text-white text-lg"
-              style={{ background: STRINGS[currentStringIndex].color }}
-            >
-              {STRINGS[currentStringIndex].name} • {STRINGS[currentStringIndex].note}
-            </div>
-            
-            <div className="mt-4">
-              {Math.abs(deviation) < 1.5 ? (
-                <div className="inline-block px-6 py-2 bg-green-100 text-green-700 rounded-full font-semibold">
-                  ✓ Идеально! Струна настроена
-                </div>
-              ) : (
-                <div className="text-gray-600 font-medium">
-                  {deviation > 0 
-                    ? `↑ Натяните струну выше (на ${Math.abs(deviation).toFixed(1)}%)` 
-                    : `↓ Ослабьте струну ниже (на ${Math.abs(deviation).toFixed(1)}%)`}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Кнопка сброса */}
-        {isListening && (
-          <div className="flex justify-center mt-4">
-            <button
-              onClick={resetTuner}
-              className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
-            >
-              ↺ Сбросить прогресс
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Кнопка сброса */}
+      {isListening && (
+        <div className="flex justify-center mt-4 mb-8">
+          <button
+            onClick={resetTuner}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg text-gray-400 hover:bg-gray-700 transition-colors text-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Сбросить прогресс
+          </button>
+        </div>
+      )}
 
       {/* Список струн */}
-      <div className="bg-white rounded-2xl shadow-xl p-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">Струны гитары</h3>
+      <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-2xl border border-gray-800 p-6">
+        <h3 className="text-lg font-bold text-white mb-4 text-center">Струны гитары</h3>
         <div className="space-y-3">
           {STRINGS.map((string, index) => (
-            <div key={index} className="flex items-center gap-4 p-2 rounded-lg hover:bg-gray-50 transition">
+            <div 
+              key={index} 
+              className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-300 ${
+                currentStringIndex === index && isListening ? 'ring-2 ring-primary/50' : ''
+              }`}
+              style={{ background: tunedStrings[index] ? string.colorLight : 'transparent' }}
+            >
               <div 
-                className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shadow-md"
+                className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shadow-md transition-transform duration-300"
                 style={{ background: string.color }}
               >
                 {index + 1}
               </div>
               <div className="flex-1">
                 <div className="flex justify-between mb-1">
-                  <span className="font-semibold">{string.name}</span>
+                  <span className="font-semibold text-white">{string.name}</span>
                   <span className="text-sm text-gray-500">{string.note}</span>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                   <div 
                     className="h-full transition-all duration-500 rounded-full"
                     style={{ 
                       width: `${tunedStrings[index] ? 100 : 0}%`,
                       background: string.color
                     }}
-                  ></div>
+                  />
                 </div>
               </div>
               {tunedStrings[index] && (
-                <div className="text-green-500 text-2xl">✓</div>
+                <CheckCircle className="w-5 h-5 text-green-500" />
               )}
-              {currentStringIndex === index && isListening && (
-                <div className="text-blue-500 animate-pulse">🎵</div>
+              {currentStringIndex === index && isListening && !tunedStrings[index] && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
+                  <span className="text-xs text-primary">играйте</span>
+                </div>
               )}
             </div>
           ))}
         </div>
         
-        {/* Прогресс */}
-        <div className="mt-6 pt-4 border-t border-gray-200">
+        {/* Прогресс настройки */}
+        <div className="mt-6 pt-4 border-t border-gray-800">
           <div className="flex justify-between mb-2">
-            <span className="text-sm text-gray-600">Прогресс настройки</span>
-            <span className="text-sm font-semibold text-gray-700">
-              {tunedStrings.filter(v => v === true).length} / 6
+            <span className="text-sm text-gray-500">Прогресс настройки</span>
+            <span className="text-sm font-semibold text-primary">
+              {tunedCount} / 6
             </span>
           </div>
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
             <div 
               className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500 rounded-full"
-              style={{ width: `${(tunedStrings.filter(v => v === true).length / 6) * 100}%` }}
-            ></div>
+              style={{ width: `${(tunedCount / 6) * 100}%` }}
+            />
           </div>
+          {allTuned && (
+            <div className="mt-3 text-center text-green-400 text-sm animate-pulse">
+              🎸 Все струны настроены! Отлично!
+            </div>
+          )}
         </div>
       </div>
 
       {/* Инструкция */}
-      <div className="mt-6 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-2xl p-5">
-        <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+      <div className="mt-6 bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-5 border border-primary/20">
+        <h4 className="font-semibold text-primary mb-3 flex items-center gap-2">
           <span className="text-xl">🎯</span> Как пользоваться тюнером:
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-blue-700">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-400">
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">1</span>
-            <span>Подключите гитару</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">2</span>
+            <span className="w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-xs">1</span>
             <span>Нажмите "Включить тюнер"</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">3</span>
+            <span className="w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-xs">2</span>
             <span>Извлеките звук на струне</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">4</span>
+            <span className="w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-xs">3</span>
             <span>Следите за стрелкой</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">5</span>
+            <span className="w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-xs">4</span>
             <span>Крутите колок в сторону стрелки</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">6</span>
+            <span className="w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-xs">5</span>
             <span>Стрелка в центре — струна настроена!</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-xs">6</span>
+            <span>Настройте все 6 струн</span>
           </div>
         </div>
       </div>

@@ -8,7 +8,7 @@ interface BackingTrackPlayerProps {
   isPlaying: boolean;
   onTimeUpdate?: (time: number) => void;
   volume?: number;
-  startTime?: number; // ← добавили startTime
+  startTime?: number; // ← добавить
 }
 
 export default function BackingTrackPlayer({ 
@@ -16,7 +16,7 @@ export default function BackingTrackPlayer({
   isPlaying, 
   onTimeUpdate, 
   volume = 0.7,
-  startTime = 0  // ← по умолчанию с начала
+  startTime = 0
 }: BackingTrackPlayerProps) {
   const playerRef = useRef<Tone.Player | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -108,6 +108,11 @@ export default function BackingTrackPlayer({
         </span>
         {isPlaying && isLoaded && (
           <span className="text-green-400 animate-pulse">▶ ИГРАЕТ</span>
+        )}
+        {startTime > 0 && (
+          <span className="text-yellow-400 text-[10px]">
+            ⚡ старт с {startTime}с
+          </span>
         )}
       </div>
     </div>

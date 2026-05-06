@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     if (!user || !user.password) {
       return NextResponse.json(
         { error: 'Неверный email или пароль' },
-        { status: 400 }
+        { status: 401 }
       );
     }
 
@@ -26,25 +26,30 @@ export async function POST(request: Request) {
     if (!isValid) {
       return NextResponse.json(
         { error: 'Неверный email или пароль' },
-        { status: 400 }
+        { status: 401 }
       );
     }
 
-    // Создаём токен
+    // Создаём токен — добавляем оба поля для совместимости
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { 
+        id: user.id,           // для scores
+        userId: user.id,       // для me (старый формат)
+        email: user.email, 
+        role: user.role 
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // Возвращаем токен в ответе
     return NextResponse.json({
       success: true,
       token: token,
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        role: user.role
       }
     });
   } catch (error) {

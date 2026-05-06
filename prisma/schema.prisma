@@ -7,12 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Остальные модели остаются без изменений
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
   password  String?
+  role      String   @default("user") // "user" или "admin"
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   
@@ -24,19 +24,21 @@ model User {
 }
 
 model Song {
-  id         String   @id @default(cuid())
-  title      String
-  artist     String
-  bpm        Int
-  difficulty String
-  effect     String?
-  duration   Int
-  tabData    Json?    @map("tab_data")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id           String   @id @default(cuid())
+  title        String
+  artist       String
+  bpm          Int
+  difficulty   String
+  effect       String?
+  duration     Int
+  backingTrack String?  @map("backing_track")
+  tabData      Json?    @map("tab_data")
+  startOffset  Float?   @default(0) @map("start_offset") // ← добавляем поле
+  createdAt    DateTime @default(now()) @map("created_at")
   
-  favorites  Favorite[]
-  scores     Score[]
-  progress   Progress[]
+  favorites    Favorite[]
+  scores       Score[]
+  progress     Progress[]
   
   @@map("songs")
 }
@@ -103,7 +105,7 @@ model Article {
   id          String   @id @default(cuid())
   slug        String   @unique
   title       String
-  category    String   // 'lessons' или 'songs'
+  category    String
   subcategory String
   excerpt     String   @db.Text
   content     String   @db.Text
@@ -113,6 +115,7 @@ model Article {
   tags        Json
   status      String   @default("published")
   views       Int      @default(0)
+  showOnHomepage Boolean @default(false)  // ← добавляем это поле
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
   

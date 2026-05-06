@@ -2,8 +2,11 @@ export interface GameNote {
   id: string;
   string: number;
   time: number;
+  measure?: number;
+  beat?: number;
+  subBeat?: number;
   duration: number;
-  chord?: string;
+  chord?: string;      // ← должно быть для аккордов
   fret?: number;
   finger?: number;
   frequency?: number;
@@ -19,7 +22,7 @@ export interface GameSong {
   difficulty: 'easy' | 'medium' | 'hard';
   effect?: 'clean' | 'distortion' | 'reverb';
   backingTrack?: string;
-  backingTrackOffset?: number;
+  startOffset?: number;
   image?: string;
 }
 
