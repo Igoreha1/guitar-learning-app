@@ -7,6 +7,7 @@ export const demoGameSong: GameSong = {
   artist: "Demo",
   bpm: 120,
   duration: 30,
+  difficulty: "medium",  // ← добавили
   notes: [
     { id: "1", string: 2, time: 0.5, duration: 0.5 },
     { id: "2", string: 2, time: 1.0, duration: 0.5 },
@@ -57,6 +58,7 @@ export function createGameSongFromChords(
     artist: "User",
     bpm,
     duration: chords[chords.length - 1]?.time + 2 || 10,
+    difficulty: "medium",  // ← добавили
     notes
   };
 }
