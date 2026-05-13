@@ -9,36 +9,31 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.split(' ')[1];
 
-    console.log('🔍 /api/auth/me - Token получен:', token ? 'да' : 'нет');
+    console.log('🔍 /api/auth/me - Token:', token ? 'есть' : 'нет');
 
     if (!token) {
-      console.log('❌ Токен отсутствует');
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
 
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET) as any;
-      console.log('🔍 Полный decoded:', JSON.stringify(decoded, null, 2));
-      
-      // Ищем id в разных полях
-      const userId = decoded.id || decoded.userId || decoded.sub;
-      console.log('✅ Найденный userId:', userId);
-      
-      if (!userId) {
-        console.log('❌ В токене нет id');
-        return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-      }
-      
-      // Сохраняем userId в decoded для дальнейшего использования
-      decoded = { ...decoded, userId: userId };
+      console.log('🔍 /api/auth/me - Decoded:', JSON.stringify(decoded, null, 2));
     } catch (err) {
       console.log('❌ Ошибка верификации токена:', err);
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
 
+    // Пробуем получить userId из разных полей
+    const userId = decoded.userId || decoded.id || decoded.sub;
+    console.log('🔍 /api/auth/me - userId:', userId);
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+    }
+
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: userId },
       select: { id: true, email: true, name: true, role: true, createdAt: true }
     });
 
@@ -50,7 +45,7 @@ export async function GET(request: Request) {
     console.log('✅ Пользователь найден, роль:', user.role);
     return NextResponse.json({ user });
   } catch (error) {
-    console.error('❌ Ошибка проверки токена:', error);
+    console.error('❌ Ошибка:', error);
     return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
   }
 }

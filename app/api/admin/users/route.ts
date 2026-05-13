@@ -8,12 +8,30 @@ const verifyAdmin = (request: Request) => {
   const authHeader = request.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   
-  if (!token) return false;
+  console.log('🔍 Token:', token ? `${token.substring(0, 30)}...` : 'нет');
+  
+  if (!token) {
+    console.log('❌ Токен отсутствует');
+    return false;
+  }
   
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { role: string };
-    return decoded.role === 'admin';
-  } catch {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    console.log('🔍 Decoded полностью:', JSON.stringify(decoded, null, 2));
+    
+    // Пробуем найти роль в разных полях
+    const role = decoded.role || decoded.userRole;
+    const userId = decoded.userId || decoded.id || decoded.sub;
+    
+    console.log('🔍 Найденная роль:', role);
+    console.log('🔍 Найденный userId:', userId);
+    
+    const isAdmin = role === 'admin';
+    console.log('🔍 Является админом?', isAdmin);
+    
+    return isAdmin;
+  } catch (error) {
+    console.error('❌ Ошибка верификации токена:', error);
     return false;
   }
 };

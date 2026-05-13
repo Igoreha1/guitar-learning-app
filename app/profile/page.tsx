@@ -7,7 +7,7 @@ import {
   User, Mail, Calendar, Trophy, Target, Clock, 
   Heart, Music, Star, TrendingUp, Award, 
   ChevronRight, Play, Trash2, LogOut, Settings,
-  Sparkles, Zap, Shield, Guitar
+  Sparkles, Zap, Shield, Guitar, BookOpen, Bookmark, Eye
 } from 'lucide-react';
 
 interface User {
@@ -38,6 +38,23 @@ interface Favorite {
   };
 }
 
+interface SavedArticle {
+  id: string;
+  articleId: string;
+  createdAt: string;
+  article: {
+    id: string;
+    slug: string;
+    title: string;
+    excerpt: string;
+    image: string;
+    category: string;
+    subcategory: string;
+    createdAt: string;
+    views: number;
+  };
+}
+
 interface Stats {
   totalScores: number;
   totalPlayTime: number;
@@ -50,6 +67,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [scores, setScores] = useState<Score[]>([]);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalScores: 0,
     totalPlayTime: 0,
@@ -58,7 +76,7 @@ export default function ProfilePage() {
     totalNotes: 0
   });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'scores' | 'favorites'>('scores');
+  const [activeTab, setActiveTab] = useState<'scores' | 'favorites' | 'saved'>('scores');
   const router = useRouter();
 
   useEffect(() => {
@@ -110,6 +128,15 @@ export default function ProfilePage() {
       if (favData.favorites) {
         setFavorites(favData.favorites);
       }
+
+      // Загружаем сохранённые статьи
+      const savedRes = await fetch('/api/user/saved', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const savedData = await savedRes.json();
+      if (savedData.saved) {
+        setSavedArticles(savedData.saved);
+      }
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
     } finally {
@@ -125,6 +152,19 @@ export default function ProfilePage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setFavorites(favorites.filter(f => f.id !== favoriteId));
+    } catch (error) {
+      console.error('Ошибка удаления:', error);
+    }
+  };
+
+  const removeSavedArticle = async (articleId: string) => {
+    const token = localStorage.getItem('token');
+    try {
+      await fetch(`/api/user/saved?articleId=${articleId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setSavedArticles(savedArticles.filter(s => s.articleId !== articleId));
     } catch (error) {
       console.error('Ошибка удаления:', error);
     }
@@ -291,6 +331,20 @@ export default function ProfilePage() {
                   <span className="ml-1 text-xs text-gray-500">({favorites.length})</span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab('saved')}
+                className={`flex-1 py-4 text-center font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                  activeTab === 'saved'
+                    ? 'text-primary border-b-2 border-primary bg-primary/5'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <Bookmark className="w-4 h-4" />
+                Сохранённое
+                {savedArticles.length > 0 && (
+                  <span className="ml-1 text-xs text-gray-500">({savedArticles.length})</span>
+                )}
+              </button>
             </div>
 
             <div className="p-6">
@@ -389,6 +443,52 @@ export default function ProfilePage() {
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {activeTab === 'saved' && (
+                <>
+                  {savedArticles.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4">📖</div>
+                      <p className="text-gray-400 mb-4">Нет сохранённых статей</p>
+                      <Link href="/lessons" className="btn-primary inline-flex items-center gap-2">
+                        <BookOpen className="w-4 h-4" />
+                        К урокам
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {savedArticles.map((item) => (
+                        <div key={item.id} className="flex items-start justify-between p-4 bg-gray-800/30 rounded-xl hover:bg-gray-800/50 transition-all group">
+                          <div className="flex-1">
+                            <Link href={`/${item.article.category}/${item.article.slug}`}>
+                              <h3 className="font-semibold text-white group-hover:text-primary transition-colors">
+                                {item.article.title}
+                              </h3>
+                            </Link>
+                            <p className="text-sm text-gray-500 mt-1">{item.article.subcategory}</p>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(item.article.createdAt).toLocaleDateString('ru-RU')}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Eye className="w-3 h-3" />
+                                {item.article.views} просмотров
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeSavedArticle(item.articleId)}
+                            className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
                     </div>

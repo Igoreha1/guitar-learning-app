@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, Mail, Lock, User, Eye, EyeOff, Guitar, Sparkles, ChevronRight } from 'lucide-react';
-import Link from 'next/link';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -27,6 +28,18 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
       setIsVisible(false);
     }
   }, [isOpen]);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
+  const handleGuestContinue = () => {
+    handleClose();
+    router.push('/lessons');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,11 +62,16 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
         if (data.token) {
           localStorage.setItem('token', data.token);
         }
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
         onLogin(data.user);
         onClose();
         setEmail('');
         setPassword('');
         setName('');
+        // Перезагружаем страницу после входа
+        window.location.href = '/lessons';
       } else {
         setError(data.error || 'Ошибка');
       }
@@ -69,7 +87,7 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Затемнение с blur */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
       
       {/* Модальное окно */}
       <div className={`relative bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden transform transition-all duration-300 ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
@@ -80,10 +98,10 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
         
         {/* Кнопка закрытия */}
         <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-1 rounded-full bg-gray-800/50 text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-200"
+          onClick={handleClose}
+          className="absolute top-4 right-4 z-10 p-1.5 rounded-full bg-gray-800/50 text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-200"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
 
         {/* Контент */}
@@ -243,6 +261,7 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
             <div className="mt-4 text-center">
               <button
                 type="button"
+                onClick={handleGuestContinue}
                 className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
               >
                 Продолжить без регистрации

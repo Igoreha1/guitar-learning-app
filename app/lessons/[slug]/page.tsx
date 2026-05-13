@@ -3,6 +3,9 @@ import Link from 'next/link';
 import { Calendar, Clock, Eye, User, ArrowLeft, Play, BookOpen, Share2, Bookmark, ChevronRight, Target, CheckCircle, Award, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import prisma from '@/lib/prisma';
 
+// Импортируем клиентский компонент для кнопок
+import LessonActions from './LessonActions';
+
 export default async function LessonPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   
@@ -103,7 +106,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
             />
           </div>
 
-          {/* Прогресс урока (заглушка) */}
+          {/* Прогресс урока */}
           <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl p-4 mb-8 border border-gray-800">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-400">Ваш прогресс</span>
@@ -131,29 +134,13 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
             />
           </div>
 
-          {/* Кнопки действий */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
-            <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg text-gray-400 hover:text-primary transition-colors">
-                <Bookmark className="w-4 h-4" />
-                Сохранить
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg text-gray-400 hover:text-primary transition-colors">
-                <Share2 className="w-4 h-4" />
-                Поделиться
-              </button>
-            </div>
-            <div className="flex gap-3">
-              <Link href="/lessons" className="flex items-center gap-2 px-6 py-3 bg-gray-800 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors">
-                <ArrowLeft className="w-4 h-4" />
-                Все уроки
-              </Link>
-              <Link href="/game" className="flex items-center gap-2 px-6 py-3 btn-primary">
-                <Play className="w-4 h-4" />
-                Практика в игре
-              </Link>
-            </div>
-          </div>
+          {/* Кнопки действий - используем клиентский компонент */}
+          <LessonActions 
+            articleId={article.id} 
+            articleTitle={article.title}
+            prevLesson={prevLesson}
+            nextLesson={nextLesson}
+          />
 
           {/* Навигация между уроками */}
           {(prevLesson || nextLesson) && (
@@ -208,6 +195,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               </Link>
               <Link href="/lessons" className="btn-outline inline-flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
+                Все уроки
               </Link>
             </div>
           </div>

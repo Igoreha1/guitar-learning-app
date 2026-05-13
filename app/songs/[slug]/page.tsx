@@ -122,10 +122,6 @@ export default async function SongPage({ params }: { params: Promise<{ slug: str
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
             <div className="flex gap-3">
               <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg text-gray-400 hover:text-primary transition-colors">
-                <Bookmark className="w-4 h-4" />
-                Сохранить
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg text-gray-400 hover:text-primary transition-colors">
                 <Share2 className="w-4 h-4" />
                 Поделиться
               </button>

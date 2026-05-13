@@ -20,8 +20,8 @@ export const chordShapes: { [key: string]: ChordShape } = {
   },
   'C#_major': {
     name: 'C#',
-    strings: [4, 4, 6, 6, 6, 4],
-    fingers: [1, 1, 3, 4, 2, 1],
+    strings: [null, 4, 6, 6, 6, 4],
+    fingers: [null, 1, 3, 4, 2, 1],
     description: 'Мажорный аккорд с баррэ на 4-м ладу',
     tip: 'Используйте указательный палец для баррэ на 4-м ладу'
   },
@@ -34,8 +34,8 @@ export const chordShapes: { [key: string]: ChordShape } = {
   },
   'D#_major': {
     name: 'D#',
-    strings: [6, 6, 8, 8, 8, 6],
-    fingers: [1, 1, 3, 4, 2, 1],
+    strings: [null, 6, 8, 8, 8, 6],
+    fingers: [null, 1, 3, 4, 2, 1],
     description: 'Мажорный аккорд с баррэ на 6-м ладу',
     tip: 'Переносите форму аккорда A с баррэ'
   },
@@ -69,7 +69,7 @@ export const chordShapes: { [key: string]: ChordShape } = {
   },
   'G#_major': {
     name: 'G#',
-    strings: [4, 4, 6, 6, 6, 4],
+    strings: [4, 4, 6, 6, 5, 4],
     fingers: [1, 1, 3, 4, 2, 1],
     description: 'Мажорный аккорд с баррэ на 4-м ладу',
     tip: 'Используйте форму аккорда F'
@@ -97,84 +97,84 @@ export const chordShapes: { [key: string]: ChordShape } = {
   },
 
   // ========== МИНОРНЫЕ (Minor) ==========
-  'Cm_minor': {
+  'C_minor': {
     name: 'Cm',
     strings: [3, 3, 5, 5, 4, 3],
-    fingers: [1, 1, 3, 4, 2, 1],
+    fingers: [1, 1, 4, 3, 2, 1],
     description: 'Минорный аккорд с баррэ на 3-м ладу',
-    tip: 'Используйте форму аккорда Am с баррэ'
-  },
-  'C#m_minor': {
+    tip: 'Указательный палец — баррэ на 3-м ладу, средний — 4-й лад на 2-й струне, безымянный и мизинец — 5-й лад на 3-й и 4-й струнах'
+},
+  'C#_minor': {
     name: 'C#m',
     strings: [4, 4, 6, 6, 5, 4],
     fingers: [1, 1, 3, 4, 2, 1],
     description: 'Минорный аккорд с баррэ на 4-м ладу',
     tip: 'Переносите форму аккорда Bm'
   },
-  'Dm_minor': {
+  'D_minor': {
     name: 'Dm',
     strings: [null, null, 0, 2, 3, 1],
     fingers: [null, null, null, 2, 3, 1],
     description: 'Минорный аккорд с открытой 4-й струной',
     tip: 'Похож на аккорд D, но с мизинцем на 1-й струне'
   },
-  'D#m_minor': {
+  'D#_minor': {
     name: 'D#m',
     strings: [6, 6, 8, 8, 7, 6],
     fingers: [1, 1, 3, 4, 2, 1],
     description: 'Минорный аккорд с баррэ на 6-м ладу',
     tip: 'Используйте форму аккорда Bm'
   },
-  'Em_minor': {
+  'E_minor': {
     name: 'Em',
     strings: [0, 2, 2, 0, 0, 0],
     fingers: [null, 2, 3, null, null, null],
     description: 'Самый простой минорный аккорд',
     tip: 'Начинайте обучение с этого аккорда'
   },
-  'Fm_minor': {
+  'F_minor': {
     name: 'Fm',
     strings: [1, 1, 3, 3, 1, 1],
     fingers: [1, 1, 3, 4, 1, 1],
     description: 'Минорный аккорд с баррэ на первом ладу',
     tip: 'Сложный аккорд, требует практики баррэ'
   },
-  'F#m_minor': {
+  'F#_minor': {
     name: 'F#m',
     strings: [2, 2, 4, 4, 2, 2],
     fingers: [1, 1, 3, 4, 1, 1],
     description: 'Минорный аккорд с баррэ на 2-м ладу',
     tip: 'Переносите форму аккорда Fm'
   },
-  'Gm_minor': {
+  'G_minor': {
     name: 'Gm',
     strings: [3, 3, 3, 5, 5, 3],
     fingers: [1, 1, 1, 3, 4, 1],
     description: 'Минорный аккорд с баррэ на третьем ладу',
     tip: 'Аккорд Gm в форме Em с баррэ'
   },
-  'G#m_minor': {
+  'G#_minor': {
     name: 'G#m',
     strings: [4, 4, 6, 6, 4, 4],
     fingers: [1, 1, 3, 4, 1, 1],
     description: 'Минорный аккорд с баррэ на 4-м ладу',
     tip: 'Используйте форму аккорда Fm'
   },
-  'Am_minor': {
+  'A_minor': {
     name: 'Am',
     strings: [null, 1, 2, 2, 0, 0],
     fingers: [null, 1, 3, 2, null, null],
     description: 'Один из самых популярных минорных аккордов',
     tip: 'Ставьте пальцы вертикально, не глушите соседние струны'
   },
-  'A#m_minor': {
+  'A#_minor': {
     name: 'A#m',
     strings: [6, 6, 8, 8, 6, 6],
     fingers: [1, 1, 3, 4, 1, 1],
     description: 'Минорный аккорд с баррэ на 6-м ладу',
     tip: 'Переносите форму аккорда Bm'
   },
-  'Bm_minor': {
+  'B_minor': {
     name: 'Bm',
     strings: [2, 2, 4, 4, 3, 2],
     fingers: [1, 1, 3, 4, 2, 1],

@@ -1,17 +1,28 @@
 import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '3377026722e9756799a30b3f0becada09ba47d9825ca18d15f3f67e76b1e1a85';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
-const checkAdminAuth = (request: Request) => {
+const verifyAdmin = (request: Request) => {
   const authHeader = request.headers.get('authorization');
-  return authHeader === `Bearer ${ADMIN_TOKEN}`;
+  const token = authHeader?.split(' ')[1];
+  
+  if (!token) return false;
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { role: string };
+    return decoded.role === 'admin';
+  } catch {
+    return false;
+  }
 };
 
 export async function POST(request: Request) {
   try {
-    if (!checkAdminAuth(request)) {
+    // Проверяем авторизацию через JWT
+    if (!verifyAdmin(request)) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
 

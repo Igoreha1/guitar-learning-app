@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   TrendingUp, Users, Music, FileText, Guitar, 
   Star, Award, Calendar, Eye, Clock, ArrowUpRight,
@@ -19,6 +20,7 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState<Stats>({ 
     songs: 0, users: 0, scores: 0, chords: 0, articles: 0, views: 0, avgScore: 0 
   });
@@ -32,11 +34,31 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
+      const token = localStorage.getItem('token');
+      console.log('🔍 AdminDashboard - токен:', token ? 'есть' : 'нет');
+      
+      if (!token) {
+        console.log('❌ Нет токена, редирект на /admin/login');
+        router.push('/admin/login');
+        return;
+      }
+      
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+      
       const [statsRes, articlesRes, scoresRes] = await Promise.all([
-        fetch('/api/admin/stats'),
-        fetch('/api/articles?all=true&limit=5'),
-        fetch('/api/admin/recent-scores')
+        fetch('/api/admin/stats', { headers }),
+        fetch('/api/articles?all=true&limit=5', { headers }),
+        fetch('/api/admin/recent-scores', { headers })
       ]);
+      
+      // Проверяем статусы ответов
+      if (statsRes.status === 401) {
+        console.log('❌ Не авторизован, редирект на /admin/login');
+        router.push('/admin/login');
+        return;
+      }
       
       const statsData = await statsRes.json();
       setStats({

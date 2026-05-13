@@ -12,15 +12,35 @@ model User {
   email     String   @unique
   name      String?
   password  String?
-  role      String   @default("user") // "user" или "admin"
+  role      String   @default("user")
+  bio       String?
+  location  String?
+  phone     String?
+  social    Json?
+  avatar    String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   
   scores    Score[]
   favorites Favorite[]
   progress  Progress[]
+  savedArticles SavedArticle[]  // ← добавить
   
   @@map("users")
+}
+
+model SavedArticle {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  userId    String   @map("user_id")
+  articleId String   @map("article_id")
+  
+  user      User     @relation(fields: [userId], references: [id])
+  article   Article  @relation(fields: [articleId], references: [id])
+  
+  @@unique([userId, articleId])
+  @@map("saved_articles")
 }
 
 model Song {
@@ -115,9 +135,11 @@ model Article {
   tags        Json
   status      String   @default("published")
   views       Int      @default(0)
-  showOnHomepage Boolean @default(false)  // ← добавляем это поле
+  showOnHomepage Boolean @default(false)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  
+  savedBy     SavedArticle[]  // ← добавить
   
   @@map("articles")
 }

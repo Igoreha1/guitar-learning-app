@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, CheckCircle, AlertCircle, Volume2, VolumeX, RefreshCw, Play, Square } from 'lucide-react';
+import { Mic, CheckCircle, RefreshCw, Square } from 'lucide-react';
 
-// PitchDetector класс (оставлен без изменений)
+// PitchDetector класс (без изменений)
 class PitchDetector {
   private audioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
@@ -143,13 +143,16 @@ interface TunerProps {
 }
 
 const STRINGS = [
-  { note: 'E2', name: '6-я струна', shortName: 'E', frequency: 82.41, color: '#ef4444', colorLight: 'rgba(239, 68, 68, 0.1)' },
-  { note: 'A2', name: '5-я струна', shortName: 'A', frequency: 110.00, color: '#f97316', colorLight: 'rgba(249, 115, 22, 0.1)' },
-  { note: 'D3', name: '4-я струна', shortName: 'D', frequency: 146.83, color: '#eab308', colorLight: 'rgba(234, 179, 8, 0.1)' },
-  { note: 'G3', name: '3-я струна', shortName: 'G', frequency: 196.00, color: '#22c55e', colorLight: 'rgba(34, 197, 94, 0.1)' },
-  { note: 'B3', name: '2-я струна', shortName: 'B', frequency: 246.94, color: '#3b82f6', colorLight: 'rgba(59, 130, 246, 0.1)' },
-  { note: 'E4', name: '1-я струна', shortName: 'e', frequency: 329.63, color: '#a855f7', colorLight: 'rgba(168, 85, 247, 0.1)' }
+  { note: 'E2', name: '6-я струна', shortName: 'E', frequency: 82.41, color: '#ef4444', colorLight: 'rgba(239, 68, 68, 0.15)' },
+  { note: 'A2', name: '5-я струна', shortName: 'A', frequency: 110.00, color: '#f97316', colorLight: 'rgba(249, 115, 22, 0.15)' },
+  { note: 'D3', name: '4-я струна', shortName: 'D', frequency: 146.83, color: '#eab308', colorLight: 'rgba(234, 179, 8, 0.15)' },
+  { note: 'G3', name: '3-я струна', shortName: 'G', frequency: 196.00, color: '#22c55e', colorLight: 'rgba(34, 197, 94, 0.15)' },
+  { note: 'B3', name: '2-я струна', shortName: 'B', frequency: 246.94, color: '#3b82f6', colorLight: 'rgba(59, 130, 246, 0.15)' },
+  { note: 'E4', name: '1-я струна', shortName: 'e', frequency: 329.63, color: '#a855f7', colorLight: 'rgba(168, 85, 247, 0.15)' }
 ];
+
+// Состояние каждой струны: false - не настроена, true - настроена
+// Оно НЕ СБРАСЫВАЕТСЯ при переключении на другую струну
 
 export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false }: TunerProps) {
   const [isListening, setIsListening] = useState(false);
@@ -158,10 +161,13 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
   const [currentFrequency, setCurrentFrequency] = useState(0);
   const [currentStringIndex, setCurrentStringIndex] = useState<number | null>(null);
   const [deviation, setDeviation] = useState(0);
+  // tunedStrings хранит состояние КАЖДОЙ струны независимо
   const [tunedStrings, setTunedStrings] = useState<boolean[]>([false, false, false, false, false, false]);
   const [volume, setVolume] = useState(0);
   const detectorRef = useRef<PitchDetector | null>(null);
-  const animationRef = useRef<number | null>(null);
+
+  // Отслеживаем, какие струны уже были настроены (чтобы не сбрасывать)
+  const tunedRef = useRef<boolean[]>([false, false, false, false, false, false]);
 
   useEffect(() => {
     const initMic = async () => {
@@ -185,9 +191,6 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
       if (detectorRef.current) {
         detectorRef.current.stopDetection();
         detectorRef.current.cleanup();
-      }
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
       }
     };
   }, [onMicPermission]);
@@ -215,7 +218,6 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
         setCurrentFrequency(pitch);
         setCurrentNote(noteName);
         
-        // Рассчитываем громкость для визуализации
         const vol = Math.min(1, pitch / 500);
         setVolume(vol);
         
@@ -241,13 +243,15 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
           
           const isTuned = Math.abs(minDev) < 1.5;
           
-          if (isTuned && !tunedStrings[closestIndex]) {
-            const newTuned = [...tunedStrings];
-            newTuned[closestIndex] = true;
-            setTunedStrings(newTuned);
+          // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: только если струна не была ещё настроена, обновляем состояние
+          // НЕ СБРАСЫВАЕМ уже настроенные струны
+          if (isTuned && !tunedRef.current[closestIndex]) {
+            tunedRef.current[closestIndex] = true;
+            setTunedStrings([...tunedRef.current]);
             
-            if (newTuned.every(v => v === true) && onTuneComplete) {
-              onTuneComplete();
+            // Проверяем, все ли струны настроены
+            if (tunedRef.current.every(v => v === true)) {
+              onTuneComplete?.();
             }
           }
         } else {
@@ -269,6 +273,7 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
   };
 
   const resetTuner = () => {
+    tunedRef.current = [false, false, false, false, false, false];
     setTunedStrings([false, false, false, false, false, false]);
     setDeviation(0);
     setCurrentStringIndex(null);
@@ -276,7 +281,6 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
     setCurrentFrequency(0);
   };
 
-  // Угол стрелки (от -45 до +45 градусов)
   const getNeedleRotation = () => {
     const maxAngle = 50;
     const clamped = Math.max(-maxAngle, Math.min(maxAngle, deviation * 2.5));
@@ -337,50 +341,16 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
       {/* Круглый тюнер */}
       <div className="relative mb-10">
         <div className="relative w-80 h-80 mx-auto">
-          {/* Фоновый круг */}
           <div className="absolute inset-0 rounded-full bg-gradient-to-br from-gray-dark to-dark shadow-2xl" />
           
-          {/* Градуированная шкала */}
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200">
-            {/* Левая дуга (ниже) */}
-            <path
-              d="M 100 25 A 75 75 0 0 1 25 100"
-              fill="none"
-              stroke="#ef4444"
-              strokeWidth="4"
-              strokeLinecap="round"
-              opacity="0.6"
-            />
-            {/* Правая дуга (выше) */}
-            <path
-              d="M 100 25 A 75 75 0 0 0 175 100"
-              fill="none"
-              stroke="#22c55e"
-              strokeWidth="4"
-              strokeLinecap="round"
-              opacity="0.6"
-            />
-            {/* Центральная зона (зелёная) */}
-            <path
-              d="M 100 28 A 72 72 0 0 1 28 100"
-              fill="none"
-              stroke="#22c55e"
-              strokeWidth="12"
-              strokeLinecap="round"
-              opacity="0.3"
-            />
-            <path
-              d="M 100 28 A 72 72 0 0 0 172 100"
-              fill="none"
-              stroke="#22c55e"
-              strokeWidth="12"
-              strokeLinecap="round"
-              opacity="0.3"
-            />
+            <path d="M 100 25 A 75 75 0 0 1 25 100" fill="none" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
+            <path d="M 100 25 A 75 75 0 0 0 175 100" fill="none" stroke="#22c55e" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
+            <path d="M 100 28 A 72 72 0 0 1 28 100" fill="none" stroke="#22c55e" strokeWidth="12" strokeLinecap="round" opacity="0.3" />
+            <path d="M 100 28 A 72 72 0 0 0 172 100" fill="none" stroke="#22c55e" strokeWidth="12" strokeLinecap="round" opacity="0.3" />
             
-            {/* Метки шкалы */}
             {[-30, -20, -10, 0, 10, 20, 30].map((val) => {
-              const angle = val * 0.9; // преобразуем в градусы
+              const angle = val * 0.9;
               const rad = (angle - 90) * Math.PI / 180;
               const r1 = 65;
               const r2 = 75;
@@ -389,12 +359,9 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
               const x2 = 100 + r2 * Math.cos(rad);
               const y2 = 100 + r2 * Math.sin(rad);
               const color = val === 0 ? '#22c55e' : (val < 0 ? '#ef4444' : '#22c55e');
-              return (
-                <line key={val} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={val === 0 ? 3 : 1.5} />
-              );
+              return <line key={val} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={val === 0 ? 3 : 1.5} />;
             })}
             
-            {/* Текст меток */}
             <text x="32" y="85" fontSize="8" fill="#ef4444" opacity="0.7" textAnchor="middle">-30</text>
             <text x="42" y="70" fontSize="8" fill="#ef4444" opacity="0.5" textAnchor="middle">-20</text>
             <text x="55" y="58" fontSize="8" fill="#ef4444" opacity="0.3" textAnchor="middle">-10</text>
@@ -404,7 +371,6 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
             <text x="93" y="38" fontSize="10" fill="#fff" fontWeight="bold" textAnchor="middle">0</text>
           </svg>
           
-          {/* Стрелка */}
           <div
             className="absolute left-1/2 bottom-1/2 w-2 h-32 bg-gradient-to-t from-primary to-primary-dark origin-bottom transform -translate-x-1/2 transition-all duration-75"
             style={{
@@ -415,7 +381,6 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
             }}
           />
           
-          {/* Тень стрелки */}
           <div
             className="absolute left-1/2 bottom-1/2 w-1 h-32 bg-white/20 origin-bottom transform -translate-x-1/2 transition-all duration-75 blur-sm"
             style={{
@@ -424,12 +389,10 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
             }}
           />
           
-          {/* Центральная точка */}
           <div className="absolute top-1/2 left-1/2 w-6 h-6 bg-gradient-to-br from-primary to-primary-dark rounded-full transform -translate-x-1/2 -translate-y-1/2 shadow-lg">
             <div className="absolute inset-1 bg-dark rounded-full" />
           </div>
           
-          {/* Анимированная пульсация при звуке */}
           {isListening && volume > 0.1 && (
             <div 
               className="absolute top-1/2 left-1/2 rounded-full bg-primary/20 transform -translate-x-1/2 -translate-y-1/2 animate-ping"
@@ -438,7 +401,6 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
           )}
         </div>
         
-        {/* Текущая нота */}
         <div className="text-center mt-6">
           <div className="text-xs text-gray-500 mb-1 tracking-wider">СЫГРАННАЯ НОТА</div>
           <div className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent mb-3">
@@ -459,10 +421,7 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
             className="inline-flex flex-col items-center gap-2 px-8 py-4 rounded-2xl"
             style={{ background: STRINGS[currentStringIndex].colorLight, border: `1px solid ${STRINGS[currentStringIndex].color}40` }}
           >
-            <span 
-              className="text-2xl font-bold"
-              style={{ color: STRINGS[currentStringIndex].color }}
-            >
+            <span className="text-2xl font-bold" style={{ color: STRINGS[currentStringIndex].color }}>
               {STRINGS[currentStringIndex].name}
             </span>
             <span className="text-sm text-gray-400">{STRINGS[currentStringIndex].note}</span>
@@ -472,7 +431,7 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
             {Math.abs(deviation) < 1.5 ? (
               <div className="inline-flex items-center gap-2 px-5 py-2 bg-green-500/20 text-green-400 rounded-full font-semibold border border-green-500/30">
                 <CheckCircle className="w-4 h-4" />
-                Идеально! Струна настроена
+                Струна настроена!
               </div>
             ) : (
               <div className="inline-flex items-center gap-2 text-gray-400 font-medium">
@@ -508,19 +467,21 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
             <div 
               key={index} 
               className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-300 ${
-                currentStringIndex === index && isListening ? 'ring-2 ring-primary/50' : ''
+                currentStringIndex === index && isListening && !tunedStrings[index] ? 'ring-2 ring-primary/50' : ''
               }`}
               style={{ background: tunedStrings[index] ? string.colorLight : 'transparent' }}
             >
               <div 
                 className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shadow-md transition-transform duration-300"
-                style={{ background: string.color }}
+                style={{ background: tunedStrings[index] ? string.color : '#4a4a5a' }}
               >
                 {index + 1}
               </div>
               <div className="flex-1">
                 <div className="flex justify-between mb-1">
-                  <span className="font-semibold text-white">{string.name}</span>
+                  <span className={`font-semibold ${tunedStrings[index] ? 'text-white' : 'text-gray-400'}`}>
+                    {string.name}
+                  </span>
                   <span className="text-sm text-gray-500">{string.note}</span>
                 </div>
                 <div className="h-2 bg-gray-700 rounded-full overflow-hidden">

@@ -1,37 +1,88 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import AuthModal from './AuthModal';
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchUser = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.user) {
+        setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки пользователя:', error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetch('/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.user) setUser(data.user);
-        })
-        .catch(() => {});
-    }
+    fetchUser();
   }, []);
 
-  const handleLogin = (userData: any) => setUser(userData);
+  const handleLogin = async (userData: any) => {
+    setUser(userData);
+    setIsAuthModalOpen(false);
+    // Принудительно обновляем пользователя после входа
+    await fetchUser();
+    // Перезагружаем страницу, чтобы обновить все компоненты
+    router.refresh();
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
+    router.push('/');
   };
 
   const isActive = (path: string) => pathname === path;
+
+  if (isLoading) {
+    return (
+      <header className="bg-dark/95 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex justify-between items-center py-3">
+            <Link href="/" className="group flex items-center gap-2">
+              <div className="text-2xl group-hover:scale-110 transition-transform">🎸</div>
+              <div>
+                <div className="text-xl font-bold tracking-tight">
+                  <span className="text-red-500">Guitar</span>
+                  <span className="text-white">Sync</span>
+                </div>
+                <div className="text-[10px] text-gray-500 hidden sm:block">играй свободно</div>
+              </div>
+            </Link>
+            <div className="w-8 h-8"></div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <>

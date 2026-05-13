@@ -1,13 +1,11 @@
 "use client";
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   LayoutDashboard, FileText, Music, Users, Settings, LogOut, 
-  ChevronLeft, ChevronRight, Shield, Bell, Menu, X, 
-  Guitar, Sparkles, Star, TrendingUp, Calendar, Clock
+  ChevronLeft, ChevronRight, Shield, Bell, Guitar, ChevronRight as ChevronRightIcon
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -15,13 +13,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState(3);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        router.push('/admin/login');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        
+        if (data.user && data.user.role === 'admin') {
+          setUser(data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        } else {
+          router.push('/admin/login');
+        }
+      } catch (error) {
+        console.error('Ошибка проверки авторизации:', error);
+        router.push('/admin/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   const handleLogout = async () => {
@@ -43,9 +67,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Проверка авторизации...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex">
-      {/* Sidebar */}
+      {/* Sidebar (остаётся без изменений) */}
       <aside className={`${collapsed ? 'w-20' : 'w-72'} bg-gray-900/80 backdrop-blur-xl border-r border-gray-800 transition-all duration-300 flex flex-col relative z-10`}>
         {/* Logo */}
         <div className={`p-5 border-b border-gray-800 flex ${collapsed ? 'justify-center' : 'justify-between'} items-center`}>
@@ -155,7 +190,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Guitar className="w-4 h-4" />
               <span>Панель управления</span>
-              <ChevronRight className="w-3 h-3" />
+              <ChevronRightIcon className="w-3 h-3" />
               <span className="text-gray-300">{menuItems.find(i => i.href === pathname)?.label || 'Главная'}</span>
             </div>
           </div>
