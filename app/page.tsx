@@ -41,12 +41,12 @@ export default async function Home() {
               <span className="text-sm text-primary font-medium">Почему мы лучшие</span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              <span className="dark:text-white text-gray-900">
                 Почему выбирают
               </span>{' '}
-              <span className="text-gradient">GuitarSync</span>
+              <span className="text-gradient">ГитарСинхро</span>
             </h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">
+            <p className="text-text-secondary max-w-2xl mx-auto">
               Мы создали идеальную платформу для обучения игре на гитаре
             </p>
           </div>
@@ -78,8 +78,8 @@ export default async function Home() {
                   <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                     <feature.icon className="w-8 h-8 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-                  <p className="text-gray-400 leading-relaxed">{feature.desc}</p>
+                  <h3 className="text-xl font-semibold mb-3 text-text-primary">{feature.title}</h3>
+                  <p className="text-text-secondary leading-relaxed">{feature.desc}</p>
                 </div>
               </div>
             ))}
@@ -106,21 +106,21 @@ export default async function Home() {
                     <span className="badge">
                       {mainArticle.subcategory}
                     </span>
-                    <span className="text-gray-600 text-sm">•</span>
-                    <span className="flex items-center gap-1 text-gray-500 text-sm">
+                    <span className="text-text-secondary text-sm">•</span>
+                    <span className="flex items-center gap-1 text-text-secondary text-sm">
                       <Calendar className="w-3 h-3" /> 
                       {new Date(mainArticle.createdAt).toLocaleDateString('ru-RU')}
                     </span>
-                    <span className="flex items-center gap-1 text-gray-500 text-sm">
+                    <span className="flex items-center gap-1 text-text-secondary text-sm">
                       <Eye className="w-3 h-3" /> {mainArticle.views}
                     </span>
                   </div>
                   <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 leading-tight">
-                    <Link href={`/${mainArticle.category}/${mainArticle.slug}`} className="hover:text-primary transition-colors">
+                    <Link href={`/${mainArticle.category}/${mainArticle.slug}`} className="text-text-primary hover:text-primary transition-colors">
                       {mainArticle.title}
                     </Link>
                   </h2>
-                  <p className="text-gray-400 text-base mb-6 leading-relaxed line-clamp-3">
+                  <p className="text-text-secondary text-base mb-6 leading-relaxed line-clamp-3">
                     {mainArticle.excerpt}
                   </p>
                   <Link 
@@ -145,8 +145,8 @@ export default async function Home() {
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl md:text-3xl font-bold mb-2">Свежие статьи</h2>
-                  <p className="text-gray-500 text-sm">Новые уроки и разборы каждую неделю</p>
+                  <h2 className="text-2xl md:text-3xl font-bold mb-2 text-text-primary">Свежие статьи</h2>
+                  <p className="text-text-secondary text-sm">Новые уроки и разборы каждую неделю</p>
                 </div>
                 <Link href="/lessons" className="text-primary hover:text-primary-dark text-sm flex items-center gap-1 transition-colors">
                   Все статьи <ChevronRight className="w-4 h-4" />
@@ -170,7 +170,7 @@ export default async function Home() {
                       <div className="absolute inset-0 bg-gradient-to-t from-dark via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div className="p-5">
-                      <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
+                      <div className="flex items-center gap-3 text-xs text-text-secondary mb-3">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" /> 
                           {new Date(article.createdAt).toLocaleDateString('ru-RU')}
@@ -180,11 +180,11 @@ export default async function Home() {
                         </span>
                       </div>
                       <h3 className="font-semibold mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                        <Link href={`/${article.category}/${article.slug}`}>
+                        <Link href={`/${article.category}/${article.slug}`} className="text-text-primary">
                           {article.title}
                         </Link>
                       </h3>
-                      <p className="text-gray-400 text-sm line-clamp-2">
+                      <p className="text-text-secondary text-sm line-clamp-2">
                         {article.excerpt.substring(0, 100)}...
                       </p>
                       <Link 
@@ -203,7 +203,7 @@ export default async function Home() {
             <div className="space-y-6">
               {/* Поиск */}
               <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl p-6 border border-gray-800">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <h3 className="font-semibold mb-4 flex items-center gap-2 text-text-primary">
                   <Search className="w-4 h-4 text-primary" /> 
                   Поиск
                 </h3>
@@ -216,7 +216,7 @@ export default async function Home() {
                       className="input pr-10"
                     />
                     <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Search className="w-4 h-4 text-gray-500 hover:text-primary transition-colors" />
+                      <Search className="w-4 h-4 text-text-secondary hover:text-primary transition-colors" />
                     </button>
                   </div>
                 </form>
@@ -224,7 +224,7 @@ export default async function Home() {
 
               {/* Популярное */}
               <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl p-6 border border-gray-800">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <h3 className="font-semibold mb-4 flex items-center gap-2 text-text-primary">
                   <TrendingUp className="w-4 h-4 text-primary" /> 
                   Популярное
                 </h3>
@@ -235,12 +235,12 @@ export default async function Home() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-xs font-bold text-primary">#{idx + 1}</span>
-                            <span className="text-xs text-gray-600">{new Date(post.createdAt).toLocaleDateString('ru-RU')}</span>
+                            <span className="text-xs text-text-secondary">{new Date(post.createdAt).toLocaleDateString('ru-RU')}</span>
                           </div>
-                          <div className="font-medium text-sm text-gray-300 group-hover:text-primary transition-colors line-clamp-2">
+                          <div className="font-medium text-sm text-text-secondary group-hover:text-primary transition-colors line-clamp-2">
                             {post.title}
                           </div>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
+                          <div className="flex items-center gap-2 mt-1 text-xs text-text-secondary">
                             <Eye className="w-3 h-3" />
                             <span>{post.views} просмотров</span>
                           </div>
@@ -254,7 +254,7 @@ export default async function Home() {
 
               {/* Рубрики */}
               <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl p-6 border border-gray-800">
-                <h3 className="font-semibold mb-4">Рубрики</h3>
+                <h3 className="font-semibold mb-4 text-text-primary">Рубрики</h3>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { name: "Уроки", icon: "🎸", href: "/lessons" },
@@ -267,7 +267,7 @@ export default async function Home() {
                     <Link 
                       key={cat.name}
                       href={cat.href} 
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 rounded-lg text-xs hover:bg-primary/20 hover:text-primary transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 rounded-lg text-xs hover:bg-primary/20 hover:text-primary transition-colors text-text-secondary"
                     >
                       <span>{cat.icon}</span>
                       <span>{cat.name}</span>
@@ -279,8 +279,8 @@ export default async function Home() {
               {/* Telegram */}
               <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-6 text-center border border-primary/20">
                 <div className="text-4xl mb-3">📱</div>
-                <h3 className="font-semibold mb-2">Telegram-канал</h3>
-                <p className="text-gray-400 text-sm mb-4">
+                <h3 className="font-semibold mb-2 text-text-primary">Telegram-канал</h3>
+                <p className="text-text-secondary text-sm mb-4">
                   Ежедневные уроки, аккорды и полезные советы
                 </p>
                 <Link href="https://t.me/igorehababy" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm hover:bg-primary-dark transition-colors">
@@ -305,11 +305,11 @@ export default async function Home() {
                 <span className="text-sm text-primary font-medium">Начни сейчас бесплатно</span>
               </div>
               
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-text-primary">
                 Готов начать свой путь в музыке?
               </h2>
               
-              <p className="text-gray-400 max-w-2xl mx-auto mb-8 text-base">
+              <p className="text-text-secondary max-w-2xl mx-auto mb-8 text-base">
                 Присоединяйся к тысячам гитаристов, которые уже учатся с нами.
                 Первые уроки — совершенно бесплатно!
               </p>
@@ -323,16 +323,16 @@ export default async function Home() {
                 </Link>
               </div>
 
-              <div className="flex flex-wrap justify-center gap-6 mt-10 pt-6 border-t border-gray-800/50">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex flex-wrap justify-center gap-6 mt-10 pt-6 border-t border-border-color">
+                <div className="flex items-center gap-2 text-sm text-text-secondary">
                   <Heart className="w-4 h-4 text-red-500" />
                   <span>Более 10,000 учеников</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-text-secondary">
                   <Star className="w-4 h-4 text-yellow-500" />
                   <span>Рейтинг 4.9 / 5</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-text-secondary">
                   <Users className="w-4 h-4 text-primary" />
                   <span>500+ разборов песен</span>
                 </div>

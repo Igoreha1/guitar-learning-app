@@ -16,11 +16,9 @@ export default function Hero() {
   useEffect(() => {
     setIsLoaded(true);
     
-    // Проверяем авторизацию
     const token = localStorage.getItem('token');
     setIsLoggedIn(!!token);
     
-    // Создаём плавающие ноты
     const notesList = ['♪', '♫', '♩', '🎸', '🎵', '🎶', '✨'];
     const notes = Array.from({ length: 20 }, (_, i) => ({
       id: i,
@@ -50,7 +48,7 @@ export default function Hero() {
     <>
       <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
         {/* Анимированный градиентный фон */}
-        <div className="absolute inset-0 bg-gradient-to-br from-dark via-dark/95 to-darker z-0" />
+        <div className="absolute inset-0 bg-gradient-to-br from-dark/50 via-dark/30 to-darker/50 z-0" />
         
         {/* Анимированные лучи */}
         <div className="absolute inset-0 opacity-30">
@@ -84,9 +82,9 @@ export default function Hero() {
             <span className="text-sm text-primary font-medium">Бесплатное обучение — навсегда</span>
           </div>
 
-          {/* Заголовок */}
+          {/* Заголовок — используем dark: для переключения темы */}
           <h1 className={`text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight transition-all duration-700 delay-100 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
-            <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            <span className="dark:text-white text-gray-900">
               Играй на гитаре
             </span>
             <br />
@@ -96,7 +94,7 @@ export default function Hero() {
           </h1>
 
           {/* Подзаголовок */}
-          <p className={`text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed transition-all duration-700 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
+          <p className={`text-text-secondary text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed transition-all duration-700 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
             Более 1000 разборов песен, аккордовые схемы, интерактивные уроки
             и удобный метроном — всё для начинающих гитаристов
           </p>
@@ -123,7 +121,7 @@ export default function Hero() {
           </div>
 
           {/* Статистика */}
-          <div className={`flex flex-wrap justify-center gap-8 md:gap-16 pt-8 border-t border-gray-800/50 transition-all duration-700 delay-400 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <div className={`flex flex-wrap justify-center gap-8 md:gap-16 pt-8 border-t border-border-color transition-all duration-700 delay-400 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             {[
               { number: "500+", label: "Разборов песен", icon: "🎵" },
               { number: "50+", label: "Уроков", icon: "📚" },
@@ -134,7 +132,7 @@ export default function Hero() {
                 <div className="text-4xl md:text-5xl font-black bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform">
                   {stat.number}
                 </div>
-                <div className="flex items-center gap-1 text-gray-500 text-sm">
+                <div className="flex items-center gap-1 text-text-secondary text-sm">
                   <span>{stat.icon}</span>
                   <span>{stat.label}</span>
                 </div>
@@ -144,7 +142,6 @@ export default function Hero() {
         </div>
       </section>
 
-      {/* Модальное окно авторизации */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}

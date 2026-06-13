@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import AuthModal from './AuthModal';
+import ThemeToggle from './ThemeToggle';
 
 export default function Header() {
   const pathname = usePathname();
@@ -47,9 +48,7 @@ export default function Header() {
   const handleLogin = async (userData: any) => {
     setUser(userData);
     setIsAuthModalOpen(false);
-    // Принудительно обновляем пользователя после входа
     await fetchUser();
-    // Перезагружаем страницу, чтобы обновить все компоненты
     router.refresh();
   };
 
@@ -64,17 +63,17 @@ export default function Header() {
 
   if (isLoading) {
     return (
-      <header className="bg-dark/95 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50">
+      <header className="bg-header/80 backdrop-blur-xl border-b border-border-color sticky top-0 z-50 shadow-sm">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex justify-between items-center py-3">
             <Link href="/" className="group flex items-center gap-2">
               <div className="text-2xl group-hover:scale-110 transition-transform">🎸</div>
               <div>
                 <div className="text-xl font-bold tracking-tight">
-                  <span className="text-red-500">Guitar</span>
-                  <span className="text-white">Sync</span>
+                  <span className="text-primary">Гитар</span>
+                  <span className="text-text-primary">Синхро</span>
                 </div>
-                <div className="text-[10px] text-gray-500 hidden sm:block">играй свободно</div>
+                <div className="text-[10px] text-text-secondary hidden sm:block">играй свободно</div>
               </div>
             </Link>
             <div className="w-8 h-8"></div>
@@ -86,7 +85,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-dark/95 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50">
+      <header className="bg-header/80 backdrop-blur-xl border-b border-border-color sticky top-0 z-50 shadow-sm">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex justify-between items-center py-3">
             {/* Логотип */}
@@ -94,39 +93,41 @@ export default function Header() {
               <div className="text-2xl group-hover:scale-110 transition-transform">🎸</div>
               <div>
                 <div className="text-xl font-bold tracking-tight">
-                  <span className="text-red-500">Guitar</span>
-                  <span className="text-white">Sync</span>
+                  <span className="text-primary">Гитар</span>
+                  <span className="text-text-primary">Синхро</span>
                 </div>
-                <div className="text-[10px] text-gray-500 hidden sm:block">играй свободно</div>
+                <div className="text-[10px] text-text-secondary hidden sm:block">играй свободно</div>
               </div>
             </Link>
             
             {/* Десктопное меню */}
             <nav className="hidden md:block">
               <ul className="flex gap-1">
-                <NavItem href="/" active={isActive('/')}>Главная</NavItem>
                 <NavItem href="/songs" active={isActive('/songs')}>Разборы</NavItem>
                 <NavItem href="/lessons" active={isActive('/lessons')}>Уроки</NavItem>
                 <NavItem href="/chords" active={isActive('/chords')}>Аккорды</NavItem>
                 <NavItem href="/game" active={isActive('/game')} isGame>Игра</NavItem>
                 <NavItem href="/tuner" active={isActive('/tuner')}>Тюнер</NavItem>
+                <NavItem href="/metronome" active={isActive('/metronome')}>Метроном</NavItem>
               </ul>
             </nav>
             
             {/* Кнопка авторизации */}
             <div className="flex items-center gap-3">
+              <ThemeToggle />
+              
               {user ? (
                 <div className="flex items-center gap-3">
                   <Link
                     href="/profile"
-                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 transition"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg hover:bg-card-hover transition text-text-secondary hover:text-text-primary"
                   >
                     <span className="text-lg">👤</span>
-                    <span className="text-sm text-gray-300 hidden sm:inline">{user.name}</span>
+                    <span className="text-sm hidden sm:inline">{user.name}</span>
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+                    className="px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition text-sm"
                   >
                     Выйти
                   </button>
@@ -134,7 +135,7 @@ export default function Header() {
               ) : (
                 <button
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="px-4 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold hover:shadow-md transition text-sm"
+                  className="px-4 py-1.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-lg font-semibold hover:shadow-md transition text-sm"
                 >
                   Войти
                 </button>
@@ -143,12 +144,12 @@ export default function Header() {
               {/* Мобильная кнопка */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden p-2 rounded-lg hover:bg-gray-800 transition"
+                className="md:hidden p-2 rounded-lg hover:bg-card transition"
               >
                 <div className="w-5 h-4 flex flex-col justify-between">
-                  <span className={`w-full h-0.5 bg-white transition-all ${isMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
-                  <span className={`w-full h-0.5 bg-white transition-all ${isMenuOpen ? 'opacity-0' : ''}`}></span>
-                  <span className={`w-full h-0.5 bg-white transition-all ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
+                  <span className={`w-full h-0.5 bg-text-primary transition-all ${isMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
+                  <span className={`w-full h-0.5 bg-text-primary transition-all ${isMenuOpen ? 'opacity-0' : ''}`}></span>
+                  <span className={`w-full h-0.5 bg-text-primary transition-all ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
                 </div>
               </button>
             </div>
@@ -157,7 +158,7 @@ export default function Header() {
         
         {/* Мобильное меню */}
         {isMenuOpen && (
-          <div className="md:hidden bg-dark border-t border-gray-800">
+          <div className="md:hidden bg-card border-t border-border-color">
             <ul className="py-2">
               <MobileNavItem href="/" onClick={() => setIsMenuOpen(false)}>Главная</MobileNavItem>
               <MobileNavItem href="/songs" onClick={() => setIsMenuOpen(false)}>Разборы</MobileNavItem>
@@ -165,6 +166,7 @@ export default function Header() {
               <MobileNavItem href="/chords" onClick={() => setIsMenuOpen(false)}>Аккорды</MobileNavItem>
               <MobileNavItem href="/game" onClick={() => setIsMenuOpen(false)} isGame>Игра</MobileNavItem>
               <MobileNavItem href="/tuner" onClick={() => setIsMenuOpen(false)}>Тюнер</MobileNavItem>
+              <MobileNavItem href="/metronome" onClick={() => setIsMenuOpen(false)}>Метроном</MobileNavItem>
             </ul>
           </div>
         )}
@@ -192,16 +194,16 @@ function NavItem({ href, children, active, isGame }: {
         className={`
           relative px-3 py-1.5 rounded-lg font-medium transition-all duration-200 text-sm
           ${active 
-            ? 'text-red-500 bg-red-500/10' 
+            ? 'text-primary bg-primary/10' 
             : isGame 
-              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:shadow-md' 
-              : 'text-gray-300 hover:text-white hover:bg-gray-800'
+              ? 'bg-gradient-to-r from-primary to-primary-dark text-white hover:shadow-md' 
+              : 'text-text-secondary hover:text-text-primary hover:bg-card'
           }
         `}
       >
         {children}
         {active && !isGame && (
-          <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-4 h-0.5 bg-red-500 rounded-full"></span>
+          <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full"></span>
         )}
       </Link>
     </li>
@@ -225,10 +227,10 @@ function MobileNavItem({ href, children, onClick, isGame }: {
         className={`
           block px-6 py-2.5 transition-all duration-200 text-sm
           ${active 
-            ? 'bg-red-500/20 text-red-500 border-l-4 border-red-500' 
+            ? 'bg-primary/20 text-primary border-l-4 border-primary' 
             : isGame
-              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white mx-4 my-1 rounded-lg text-center'
-              : 'text-gray-300 hover:bg-gray-800'
+              ? 'bg-gradient-to-r from-primary to-primary-dark text-white mx-4 my-1 rounded-lg text-center'
+              : 'text-text-secondary hover:text-text-primary hover:bg-card'
           }
         `}
       >

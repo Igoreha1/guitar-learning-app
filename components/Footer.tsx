@@ -8,18 +8,24 @@ import {
   Phone, 
   MapPin, 
   ArrowUp,
-  Music,
-  Guitar,
   BookOpen,
-  Gamepad2,
-  Mic,
-  Settings
+  Settings,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Guitar
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [showScrollTop, setShowScrollTop] = useState(false);
+  
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [subscribeMessage, setSubscribeMessage] = useState('');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,13 +39,51 @@ export default function Footer() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !email.includes('@')) {
+      setSubscribeStatus('error');
+      setSubscribeMessage('Введите корректный email');
+      setTimeout(() => setSubscribeStatus('idle'), 3000);
+      return;
+    }
+
+    setLoading(true);
+    setSubscribeStatus('idle');
+
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSubscribeStatus('success');
+        setSubscribeMessage(data.message || 'Подписка оформлена! Проверьте ваш email.');
+        setEmail('');
+        setName('');
+      } else {
+        setSubscribeStatus('error');
+        setSubscribeMessage(data.error || 'Ошибка при подписке');
+      }
+    } catch (err) {
+      setSubscribeStatus('error');
+      setSubscribeMessage('Ошибка соединения. Попробуйте позже.');
+    } finally {
+      setLoading(false);
+      setTimeout(() => setSubscribeStatus('idle'), 5000);
+    }
+  };
+
   return (
-    <footer className="relative bg-gradient-to-b from-gray-dark/80 to-dark border-t border-gray-800 mt-auto">
-      {/* Анимированная верхняя граница */}
+    <footer className="relative bg-footer border-t border-border-color mt-auto">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
       <div className="max-w-6xl mx-auto px-4 pt-12 pb-8">
-        {/* Основная сетка */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* О проекте */}
           <div className="space-y-4">
@@ -49,13 +93,13 @@ export default function Footer() {
               </div>
               <div>
                 <span className="text-xl font-bold">
-                  <span className="text-primary">Guitar</span>
-                  <span className="text-white">Sync</span>
+                  <span className="text-primary">Гитар</span>
+                  <span className="text-text-primary">Синхро</span>
                 </span>
-                <p className="text-xs text-gray-500">играй свободно</p>
+                <p className="text-xs text-text-secondary">играй свободно</p>
               </div>
             </div>
-            <p className="text-gray-400 text-sm leading-relaxed">
+            <p className="text-text-secondary text-sm leading-relaxed">
               Бесплатный самоучитель игры на гитаре. Разборы песен, уроки для начинающих, 
               метроном и другие полезные инструменты для гитаристов любого уровня.
             </p>
@@ -63,31 +107,31 @@ export default function Footer() {
 
           {/* Рубрики */}
           <div>
-            <h4 className="font-semibold text-white mb-4 text-sm flex items-center gap-2">
+            <h4 className="font-semibold text-text-primary mb-4 text-sm flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-primary" />
               Рубрики
             </h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/songs" className="text-gray-400 hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
+                <Link href="/songs" className="text-text-secondary hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
                   <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                   Разборы песен
                 </Link>
               </li>
               <li>
-                <Link href="/lessons" className="text-gray-400 hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
+                <Link href="/lessons" className="text-text-secondary hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
                   <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                   Уроки для начинающих
                 </Link>
               </li>
               <li>
-                <Link href="/chords" className="text-gray-400 hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
+                <Link href="/chords" className="text-text-secondary hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
                   <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                   Аккорды
                 </Link>
               </li>
               <li>
-                <Link href="/game" className="text-gray-400 hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
+                <Link href="/game" className="text-text-secondary hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
                   <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                   Игра-тренажёр
                 </Link>
@@ -97,31 +141,31 @@ export default function Footer() {
 
           {/* Инструменты */}
           <div>
-            <h4 className="font-semibold text-white mb-4 text-sm flex items-center gap-2">
+            <h4 className="font-semibold text-text-primary mb-4 text-sm flex items-center gap-2">
               <Settings className="w-4 h-4 text-primary" />
               Инструменты
             </h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/metronome" className="text-gray-400 hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
+                <Link href="/metronome" className="text-text-secondary hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
                   <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                   Метроном онлайн
                 </Link>
               </li>
               <li>
-                <Link href="/tuner" className="text-gray-400 hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
+                <Link href="/tuner" className="text-text-secondary hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
                   <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                   Тюнер
                 </Link>
               </li>
               <li>
-                <Link href="/chords" className="text-gray-400 hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
+                <Link href="/chords" className="text-text-secondary hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
                   <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                   Аккорды для песен
                 </Link>
               </li>
               <li>
-                <Link href="/game" className="text-gray-400 hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
+                <Link href="/game" className="text-text-secondary hover:text-primary text-sm transition-all duration-200 flex items-center gap-2 group">
                   <span className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                   Ритм-игра
                 </Link>
@@ -131,67 +175,104 @@ export default function Footer() {
 
           {/* Контакты и подписка */}
           <div>
-            <h4 className="font-semibold text-white mb-4 text-sm flex items-center gap-2">
+            <h4 className="font-semibold text-text-primary mb-4 text-sm flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" />
               Контакты
             </h4>
             <ul className="space-y-3 mb-4">
-              <li className="flex items-center gap-3 text-gray-400 text-sm">
+              <li className="flex items-center gap-3 text-text-secondary text-sm">
                 <Mail className="w-4 h-4 text-primary" />
-                <span>info@guitarsync.ru</span>
+                <span>guitarsync@yandex.ru</span>
               </li>
-              <li className="flex items-center gap-3 text-gray-400 text-sm">
+              <li className="flex items-center gap-3 text-text-secondary text-sm">
                 <Phone className="w-4 h-4 text-primary" />
                 <span>+7 (999) 123-45-67</span>
               </li>
-              <li className="flex items-center gap-3 text-gray-400 text-sm">
+              <li className="flex items-center gap-3 text-text-secondary text-sm">
                 <MapPin className="w-4 h-4 text-primary" />
-                <span>Москва, Россия</span>
+                <span>Санкт-Петербург, Россия</span>
               </li>
             </ul>
             
-            {/* Подписка на новости */}
             <div className="mt-4">
-              <h5 className="text-xs font-semibold text-gray-500 mb-2">Подпишись на новости</h5>
-              <div className="flex gap-2">
+              <h5 className="text-xs font-semibold text-text-secondary mb-2">Подпишись на новости</h5>
+              
+              <form onSubmit={handleSubscribe} className="space-y-2">
                 <input 
-                  type="email" 
-                  placeholder="Ваш email" 
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-primary transition-colors"
+                  type="text" 
+                  placeholder="Ваше имя (необязательно)" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-2 bg-card border border-border-color rounded-lg text-text-primary text-sm placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
                 />
-                <button className="px-3 py-2 bg-primary rounded-lg hover:bg-primary-dark transition-colors">
-                  <Send className="w-4 h-4 text-white" />
-                </button>
-              </div>
+                
+                <div className="flex gap-2">
+                  <input 
+                    type="email" 
+                    placeholder="Ваш email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-card border border-border-color rounded-lg text-text-primary text-sm placeholder-text-secondary focus:outline-none focus:border-primary transition-colors"
+                    required
+                  />
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="px-3 py-2 bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 text-white animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4 text-white" />
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {subscribeStatus === 'success' && (
+                <div className="mt-2 flex items-center gap-2 text-green-400 text-xs bg-green-500/10 p-2 rounded-lg">
+                  <CheckCircle className="w-3 h-3" />
+                  <span>{subscribeMessage}</span>
+                </div>
+              )}
+
+              {subscribeStatus === 'error' && (
+                <div className="mt-2 flex items-center gap-2 text-red-400 text-xs bg-red-500/10 p-2 rounded-lg">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>{subscribeMessage}</span>
+                </div>
+              )}
+
+              <p className="text-text-secondary text-[10px] mt-2">
+                Никакого спама. Только новые песни, аккорды и статьи.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Нижняя полоса */}
-        <div className="border-t border-gray-800 pt-6 mt-4">
+        <div className="border-t border-border-color pt-6 mt-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-gray-500 text-xs">
-              © {currentYear} GuitarSync. Все права защищены.
+            <p className="text-text-secondary text-xs">
+              © {currentYear} ГитарСинхро. Все права защищены.
             </p>
             <div className="flex gap-6">
-              <Link href="/privacy" className="text-gray-500 hover:text-primary text-xs transition-colors">
+              <Link href="/privacy" className="text-text-secondary hover:text-primary text-xs transition-colors">
                 Политика конфиденциальности
               </Link>
-              <Link href="/terms" className="text-gray-500 hover:text-primary text-xs transition-colors">
+              <Link href="/terms" className="text-text-secondary hover:text-primary text-xs transition-colors">
                 Пользовательское соглашение
               </Link>
-              <Link href="/about" className="text-gray-500 hover:text-primary text-xs transition-colors">
+              <Link href="/about" className="text-text-secondary hover:text-primary text-xs transition-colors">
                 О проекте
               </Link>
             </div>
-            <p className="text-gray-600 text-xs flex items-center gap-1">
-              Сделано с <Heart className="w-3 h-3 text-red-500 animate-pulse" /> для гитаристов
+            <p className="text-text-secondary text-xs flex items-center gap-1">
+              Сделано с <Heart className="w-3 h-3 text-primary animate-pulse" /> для гитаристов
             </p>
           </div>
         </div>
       </div>
 
-      {/* Кнопка "Наверх" */}
       {showScrollTop && (
         <button
           onClick={scrollToTop}

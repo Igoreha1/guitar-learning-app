@@ -1,3 +1,5 @@
+// features/game/GameCanvas.tsx
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -58,6 +60,9 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
   const [showNewRecord, setShowNewRecord] = useState(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [confetti, setConfetti] = useState<Particle[]>([]);
+  
+  // Состояние для визуальной вспышки на определённой ноте/аккорде
+  const [flashingNoteId, setFlashingNoteId] = useState<string | null>(null);
   
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isCountdownActive, setIsCountdownActive] = useState(false);
@@ -142,6 +147,16 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
       });
     }, 16);
   };
+
+  // Сброс вспышки через 200 мс
+  useEffect(() => {
+    if (flashingNoteId) {
+      const timer = setTimeout(() => {
+        setFlashingNoteId(null);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [flashingNoteId]);
 
   // Проверка завершения игры
   useEffect(() => {
@@ -269,10 +284,14 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
   };
 
   const resumeFromPause = () => {
-    if (isPaused) {
-      startWithCountdown();
-    }
-  };
+  if (isPaused) {
+    // Не используем countdown, просто возобновляем
+    engineRef.current?.resume();
+    setIsPaused(false);
+    setShouldPlayBackingTrack(true);
+    setIsGameReady(true);
+  }
+};
 
   const pauseGame = () => {
     if (engineRef.current?.state.isPlaying) {
@@ -286,7 +305,12 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
   };
 
   const resetGame = () => {
+    // Сначала полностью останавливаем движок
+    engineRef.current?.stop();
+    
+    // Потом сбрасываем
     engineRef.current?.reset();
+    
     setCountdown(null);
     setIsCountdownActive(false);
     setIsPaused(false);
@@ -297,6 +321,8 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
     setShowCompleteScreen(false);
     setGameResult(null);
     setConfetti([]);
+    setFlashingNoteId(null);
+    
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
     }
@@ -353,6 +379,9 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
     });
     
     engine.onNoteHit((note, accuracy) => {
+      // Визуальная вспышка на ID ноты/аккорда
+      setFlashingNoteId(note.id);
+      
       setLastHitFeedback({ 
         note: note.chord || `Струна ${note.string + 1}`, 
         isHit: true,
@@ -429,6 +458,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
       const currentTimeVal = engine.getCurrentTime();
       const activeNotes = engine.getActiveNotes();
       
+      // Фон с градиентом
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
       gradient.addColorStop(0, "#0a0a2e");
       gradient.addColorStop(0.3, "#1a0a2e");
@@ -437,6 +467,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
       
+      // Горизонтальные линии сетки
       ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
       ctx.lineWidth = 1;
       for (let i = 0; i < 10; i++) {
@@ -447,6 +478,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
         ctx.stroke();
       }
       
+      // Звёздный эффект
       for (let i = 0; i < 30; i++) {
         const time = Date.now() / 1000;
         const x = (i * 137) % width;
@@ -457,14 +489,9 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
         ctx.fill();
       }
       
-      const glowGradient = ctx.createLinearGradient(0, 0, width, 0);
-      glowGradient.addColorStop(0, "rgba(231, 76, 60, 0.05)");
-      glowGradient.addColorStop(0.5, "rgba(231, 76, 60, 0)");
-      glowGradient.addColorStop(1, "rgba(231, 76, 60, 0.05)");
-      ctx.fillStyle = glowGradient;
-      ctx.fillRect(0, 0, width, height);
-      
       const stringWidth = width / 6;
+      
+      // Рисуем струны
       for (let i = 0; i < 6; i++) {
         const x = i * stringWidth + stringWidth / 2;
         
@@ -491,6 +518,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
         ctx.fillText(keys[i], x - 6, height - 25);
       }
       
+      // Отрисовка нот (активных)
       if (!isCountdownActive && !isPaused && isGameReady && !showCompleteScreen) {
         activeNotes.forEach(note => {
           const timeToHit = note.time - currentTimeVal;
@@ -500,13 +528,27 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
           
           if (y < -radius || y > height + radius) return;
           
+          // Проверяем, находится ли эта нота в состоянии вспышки
+          const isFlashing = flashingNoteId === note.id;
+          
           const gradientNote = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, radius);
           if (note.chord) {
-            gradientNote.addColorStop(0, "#ff00aa");
-            gradientNote.addColorStop(1, "#aa00ff");
+            if (isFlashing) {
+              // Вспышка: ярко-зелёный градиент
+              gradientNote.addColorStop(0, "#ffffff");
+              gradientNote.addColorStop(1, "#2ecc71");
+            } else {
+              gradientNote.addColorStop(0, "#ff00aa");
+              gradientNote.addColorStop(1, "#aa00ff");
+            }
           } else {
-            gradientNote.addColorStop(0, stringColors[note.string]);
-            gradientNote.addColorStop(1, `${stringColors[note.string]}cc`);
+            if (isFlashing) {
+              gradientNote.addColorStop(0, "#ffffff");
+              gradientNote.addColorStop(1, "#2ecc71");
+            } else {
+              gradientNote.addColorStop(0, stringColors[note.string]);
+              gradientNote.addColorStop(1, `${stringColors[note.string]}cc`);
+            }
           }
           
           ctx.beginPath();
@@ -514,8 +556,18 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
           ctx.fillStyle = gradientNote;
           ctx.fill();
           
+          // Дополнительный эффект свечения для вспышки
+          if (isFlashing) {
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = "#2ecc71";
+            ctx.beginPath();
+            ctx.arc(x, y, radius + 5, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(46, 204, 113, 0.3)";
+            ctx.fill();
+          }
+          
           ctx.shadowBlur = 15;
-          ctx.shadowColor = stringColors[note.string];
+          ctx.shadowColor = isFlashing ? "#2ecc71" : stringColors[note.string];
           ctx.strokeStyle = "#fff";
           ctx.lineWidth = 2;
           ctx.stroke();
@@ -549,6 +601,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
         });
       }
       
+      // Линия удара
       const hitY = height - 80;
       ctx.shadowBlur = 15;
       ctx.shadowColor = "#e74c3c";
@@ -562,6 +615,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
       ctx.fillRect(0, hitY - 25, width, 50);
       ctx.shadowBlur = 0;
       
+      // Обратный отсчёт
       if (isCountdownActive && countdown !== null) {
         ctx.fillStyle = "rgba(0,0,0,0.85)";
         ctx.fillRect(0, 0, width, height);
@@ -578,6 +632,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
         ctx.shadowBlur = 0;
       }
       
+      // Пауза
       if (isPaused && !isCountdownActive) {
         ctx.fillStyle = "rgba(0,0,0,0.85)";
         ctx.fillRect(0, 0, width, height);
@@ -592,6 +647,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
         ctx.shadowBlur = 0;
       }
       
+      // Текст HIT/MISS
       if (lastHitFeedback && !isCountdownActive && !isPaused && isGameReady && !showCompleteScreen) {
         if (lastHitFeedback.isHit) {
           ctx.fillStyle = "#2ecc71";
@@ -617,6 +673,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
         ctx.shadowBlur = 0;
       }
       
+      // Частицы
       particles.forEach(p => {
         ctx.fillStyle = `rgba(231, 76, 60, ${p.life})`;
         ctx.beginPath();
@@ -624,6 +681,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
         ctx.fill();
       });
       
+      // Конфетти
       confetti.forEach(c => {
         ctx.fillStyle = `rgba(255, 200, 100, ${c.life})`;
         ctx.beginPath();
@@ -636,7 +694,7 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
     
     draw();
     return () => cancelAnimationFrame(animationId);
-  }, [lastHitFeedback, gameState.isPlaying, particles, isCountdownActive, countdown, isPaused, isGameReady, showCompleteScreen, confetti, gameState.combo]);
+  }, [lastHitFeedback, gameState.isPlaying, particles, isCountdownActive, countdown, isPaused, isGameReady, showCompleteScreen, confetti, gameState.combo, flashingNoteId]);
 
   const getRating = (accuracy: number) => {
     if (accuracy >= 95) return { name: "PERFECT!", icon: "🏆", color: "text-yellow-400" };
@@ -644,6 +702,13 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
     if (accuracy >= 70) return { name: "GOOD!", icon: "👍", color: "text-green-400" };
     return { name: "NICE TRY!", icon: "🎸", color: "text-gray-400" };
   };
+
+  const fingerLegend = [
+    { finger: 1, color: "#3498db", name: "указательный" },
+    { finger: 2, color: "#2ecc71", name: "средний" },
+    { finger: 3, color: "#f39c12", name: "безымянный" },
+    { finger: 4, color: "#9b59b6", name: "мизинец" }
+  ];
 
   if (showCompleteScreen && gameResult) {
     const rating = getRating(gameResult.accuracy);
@@ -744,13 +809,6 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
       </div>
     );
   }
-
-  const fingerLegend = [
-    { finger: 1, color: "#3498db", name: "указательный" },
-    { finger: 2, color: "#2ecc71", name: "средний" },
-    { finger: 3, color: "#f39c12", name: "безымянный" },
-    { finger: 4, color: "#9b59b6", name: "мизинец" }
-  ];
 
   return (
     <div className="rounded-xl overflow-hidden shadow-2xl border border-red-500/30">
@@ -897,30 +955,30 @@ export default function GameCanvas({ song, onScoreUpdate, onGameComplete, onScor
       </div>
       
       {song.backingTrack && (
-        <div className="p-3 bg-gray-800/50 border-t border-gray-700">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs text-gray-400">🎵 МИНУСОВКА</span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Громкость</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={backingTrackVolume}
-                onChange={(e) => setBackingTrackVolume(parseFloat(e.target.value))}
-                className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-          </div>
-          <BackingTrackPlayer 
-            url={song.backingTrack} 
-            isPlaying={shouldPlayBackingTrack} 
-            volume={backingTrackVolume}
-            startTime={song.startOffset || 0}
-          />
-        </div>
-      )}
+  <div className="p-3 bg-gray-800/50 border-t border-gray-700">
+    <div className="flex justify-between items-center mb-2">
+      <span className="text-xs text-gray-400">🎵 МИНУСОВКА</span>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500">Громкость</span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={backingTrackVolume}
+          onChange={(e) => setBackingTrackVolume(parseFloat(e.target.value))}
+          className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+        />
+      </div>
+    </div>
+    <BackingTrackPlayer 
+      url={song.backingTrack} 
+      isPlaying={shouldPlayBackingTrack} 
+      volume={backingTrackVolume}
+      startTime={savedTime || song.startOffset || 0}  // ← ИСПРАВЛЕНО
+    />
+  </div>
+)}
       
       <div className="bg-gray-950 p-3 text-center text-xs text-gray-500 border-t border-red-500/20">
         {isMicConnected ? "🎸 МИКРОФОН ГОТОВ • ИГРАЙТЕ НА ГИТАРЕ" : "⚠️ ПОДКЛЮЧИТЕ МИКРОФОН ДЛЯ РАСПОЗНАВАНИЯ ЗВУКА"}

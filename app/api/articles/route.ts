@@ -100,19 +100,19 @@ export async function POST(request: Request) {
     
     const article = await prisma.article.create({
       data: {
-        id: `article_${Date.now()}`,
-        slug,
-        title,
-        category,
-        subcategory,
-        excerpt,
-        content,
-        image: image || '/images/default.jpg',
-        author: author || 'Администратор',
-        readingTime: readingTime || 5,
-        tags: tags || [],
-        status: status || 'published',
-        showOnHomepage: showOnHomepage || false
+        slug: body.slug,
+        title: body.title,
+        category: body.category,
+        subcategory: body.subcategory || '',
+        excerpt: body.excerpt,
+        content: body.content,
+        image: body.image,
+        author: body.author,
+        readingTime: body.readingTime,
+        tags: body.tags || [],
+        status: body.status,
+        showOnHomepage: body.showOnHomepage || false,
+        difficulty: body.difficulty || ''  // ← добавить
       }
     });
     

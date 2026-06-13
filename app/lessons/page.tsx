@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Calendar, Clock, Eye, ChevronRight, BookOpen, TrendingUp, Sparkles, Target, Search, Play, Star, Award, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, Eye, ChevronRight, BookOpen, TrendingUp, Target, Search, Play, Star, Award, ArrowLeft } from 'lucide-react';
 import prisma from '@/lib/prisma';
 
 interface LessonsPageProps {
@@ -11,7 +11,7 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
   const params = await searchParams;
   const levelFilter = params?.level || 'all';
   
-  // Загружаем все уроки
+  // Загружаем все уроки (учитываем поле difficulty)
   const allLessons = await prisma.article.findMany({
     where: {
       category: 'lessons',
@@ -20,8 +20,14 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
     orderBy: { createdAt: 'desc' }
   });
 
-  // Определяем уровень по subcategory или заголовку
+  // Функция для определения уровня урока (используем поле difficulty из БД)
   const getLessonLevel = (lesson: any): 'beginner' | 'intermediate' | 'advanced' => {
+    // Используем поле difficulty, которое сохраняется в админке
+    if (lesson.difficulty === 'beginner') return 'beginner';
+    if (lesson.difficulty === 'intermediate') return 'intermediate';
+    if (lesson.difficulty === 'advanced') return 'advanced';
+    
+    // Если поле не заполнено — определяем по тексту (запасной вариант)
     const text = (lesson.subcategory + ' ' + lesson.title).toLowerCase();
     if (text.includes('начинающ') || text.includes('нович') || text.includes('beginner')) {
       return 'beginner';
@@ -102,19 +108,18 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
 
   return (
     <div className="min-h-screen">
-      {/* Hero секция */}
-      <section className="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-gray-dark to-dark">
+      {/* Hero секция — адаптирована под светлую тему */}
+      <section className="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-gray-dark/30 via-gray-dark/20 to-dark/30">
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
         </div>
         
         <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
-          {/* Кнопка назад если есть фильтр */}
           {levelFilter !== 'all' && (
             <Link 
               href="/lessons" 
-              className="inline-flex items-center gap-2 text-gray-400 hover:text-primary transition-colors mb-4"
+              className="inline-flex items-center gap-2 text-text-secondary hover:text-primary transition-colors mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
               Назад ко всем урокам
@@ -127,7 +132,7 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
           </div>
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-            <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            <span className="text-text-primary">
               {levelFilter === 'all' ? 'Уроки игры на гитаре' : `Уроки для ${getFilterName()}`}
             </span>
             <br />
@@ -135,14 +140,13 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
               {levelFilter === 'all' ? 'от новичка до профи' : `${getFilterIcon()} ${getFilterName()} уровень`}
             </span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
             {levelFilter === 'all' 
               ? 'Пошаговые уроки с подробными объяснениями, упражнениями и практическими заданиями. Начни играть уже сегодня!'
               : `${lessons.length} уроков для ${getFilterName()} уровня. Выбери подходящий и начни обучение!`
             }
           </p>
           
-          {/* Поиск */}
           <div className="max-w-md mx-auto mt-8">
             <div className="relative">
               <input 
@@ -150,7 +154,7 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
                 placeholder="Поиск уроков..." 
                 className="input pl-10 py-3"
               />
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
             </div>
           </div>
         </div>
@@ -160,7 +164,7 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
         <div className="text-center py-20">
           <div className="max-w-md mx-auto">
             <div className="text-6xl mb-4">📚</div>
-            <p className="text-gray-400 mb-4">Пока нет уроков. Добавьте первый урок в админ-панели.</p>
+            <p className="text-text-secondary mb-4">Пока нет уроков. Добавьте первый урок в админ-панели.</p>
             <Link href="/admin/articles/new" className="btn-primary">
               + Добавить урок
             </Link>
@@ -168,16 +172,15 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
         </div>
       ) : (
         <>
-          {/* Уровни сложности — показываем только если нет фильтра */}
           {levelFilter === 'all' && (
             <section className="py-12">
               <div className="max-w-6xl mx-auto px-4">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center justify-center gap-2">
                     <Target className="w-6 h-6 text-primary" />
-                    Выбери свой уровень
+                    <span className="text-text-primary">Выбери свой уровень</span>
                   </h2>
-                  <p className="text-gray-500 text-sm">Начни с подходящего уровня и постепенно прокачивай навыки</p>
+                  <p className="text-text-secondary text-sm">Начни с подходящего уровня и постепенно прокачивай навыки</p>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6">
@@ -185,24 +188,26 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
                     <Link 
                       key={idx} 
                       href={`/lessons?level=${level.level}`}
-                      className="group relative bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl p-6 border border-gray-800 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1"
+                      className="group block"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="relative z-10">
-                        <div className={`text-4xl mb-3 bg-gradient-to-br ${level.color} w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-lg`}>
-                          {level.icon}
+                      <div className="relative card p-6 transition-all duration-300 hover:border-primary/30">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                        <div className="relative z-10">
+                          <div className={`text-4xl mb-3 bg-gradient-to-br ${level.color} w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-lg`}>
+                            {level.icon}
+                          </div>
+                          <h3 className="text-xl font-semibold mb-1 text-text-primary">{level.name}</h3>
+                          <p className="text-text-secondary text-sm mb-3">{level.count} уроков</p>
+                          {level.count > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-primary text-sm group-hover:gap-2 transition-all">
+                              Начать обучение <ChevronRight className="w-3 h-3" />
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-text-secondary text-sm">
+                              Скоро <ChevronRight className="w-3 h-3" />
+                            </span>
+                          )}
                         </div>
-                        <h3 className="text-xl font-semibold mb-1">{level.name}</h3>
-                        <p className="text-gray-400 text-sm mb-3">{level.count} уроков</p>
-                        {level.count > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-primary text-sm group-hover:gap-2 transition-all">
-                            Начать обучение <ChevronRight className="w-3 h-3" />
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-gray-500 text-sm">
-                            Скоро <ChevronRight className="w-3 h-3" />
-                          </span>
-                        )}
                       </div>
                     </Link>
                   ))}
@@ -211,7 +216,6 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
             </section>
           )}
 
-          {/* Список уроков */}
           <section className="py-12">
             <div className="max-w-6xl mx-auto px-4">
               {levelFilter !== 'all' && (
@@ -219,7 +223,7 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
                   <div className="inline-flex items-center gap-2 bg-primary/10 rounded-full px-4 py-2">
                     <span className="text-2xl">{getFilterIcon()}</span>
                     <span className="text-primary font-medium">{getFilterName()} уровень</span>
-                    <span className="text-gray-400">• {lessons.length} уроков</span>
+                    <span className="text-text-secondary">• {lessons.length} уроков</span>
                   </div>
                 </div>
               )}
@@ -229,19 +233,18 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
                   <div>
                     <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
                       <TrendingUp className="w-6 h-6 text-primary" />
-                      Популярные уроки
+                      <span className="text-text-primary">Популярные уроки</span>
                     </h2>
-                    <p className="text-gray-500 text-sm">Самые просматриваемые уроки</p>
+                    <p className="text-text-secondary text-sm">Самые просматриваемые уроки</p>
                   </div>
                 </div>
               )}
 
-              {/* Популярные уроки (только на главной странице уроков) */}
               {levelFilter === 'all' && (
                 <div className="grid md:grid-cols-3 gap-6 mb-12">
                   {popularLessons.map((lesson, idx) => (
                     <Link key={lesson.id} href={`/lessons/${lesson.slug}`} className="group">
-                      <div className="relative bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl overflow-hidden border border-gray-800 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
+                      <div className="relative bg-card rounded-xl overflow-hidden border border-border-color hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
                         <div className="relative h-48 overflow-hidden">
                           <img 
                             src={lesson.image} 
@@ -267,13 +270,13 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
                               {lesson.subcategory || 'Урок'}
                             </span>
                           </div>
-                          <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+                          <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1 text-text-primary">
                             {lesson.title}
                           </h3>
-                          <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                          <p className="text-text-secondary text-sm mb-3 line-clamp-2">
                             {lesson.excerpt.substring(0, 80)}...
                           </p>
-                          <div className="flex justify-between items-center text-xs text-gray-500">
+                          <div className="flex justify-between items-center text-xs text-text-secondary">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               {new Date(lesson.createdAt).toLocaleDateString('ru-RU')}
@@ -290,20 +293,19 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
                 </div>
               )}
 
-              {/* Заголовок списка уроков */}
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
                     <Star className="w-6 h-6 text-primary" />
-                    {levelFilter === 'all' ? 'Все уроки' : `Уроки для ${getFilterName()}`}
+                    <span className="text-text-primary">{levelFilter === 'all' ? 'Все уроки' : `Уроки для ${getFilterName()}`}</span>
                   </h2>
-                  <p className="text-gray-500 text-sm">{lessons.length} уроков</p>
+                  <p className="text-text-secondary text-sm">{lessons.length} уроков</p>
                 </div>
               </div>
 
               {lessons.length === 0 ? (
-                <div className="text-center py-12 bg-gray-dark/30 rounded-xl">
-                  <p className="text-gray-400">Нет уроков для этого уровня</p>
+                <div className="text-center py-12 bg-card rounded-xl">
+                  <p className="text-text-secondary">Нет уроков для этого уровня</p>
                   <Link href="/lessons" className="text-primary hover:text-primary-dark mt-2 inline-block">
                     Посмотреть все уроки
                   </Link>
@@ -312,7 +314,7 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {lessons.map((lesson) => (
                     <Link key={lesson.id} href={`/lessons/${lesson.slug}`} className="group">
-                      <div className="relative bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl overflow-hidden border border-gray-800 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
+                      <div className="relative bg-card rounded-xl overflow-hidden border border-border-color hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
                         <div className="relative h-48 overflow-hidden">
                           <img 
                             src={lesson.image} 
@@ -327,13 +329,13 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
                           </div>
                         </div>
                         <div className="p-5">
-                          <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+                          <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1 text-text-primary">
                             {lesson.title}
                           </h3>
-                          <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                          <p className="text-text-secondary text-sm mb-3 line-clamp-2">
                             {lesson.excerpt.substring(0, 80)}...
                           </p>
-                          <div className="flex justify-between items-center text-xs text-gray-500">
+                          <div className="flex justify-between items-center text-xs text-text-secondary">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               {new Date(lesson.createdAt).toLocaleDateString('ru-RU')}
@@ -356,7 +358,6 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
             </div>
           </section>
 
-          {/* CTA секция — показываем только если нет фильтра */}
           {levelFilter === 'all' && (
             <section className="py-16">
               <div className="max-w-4xl mx-auto px-4">
@@ -365,10 +366,10 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
                     <Award className="w-4 h-4 text-primary" />
                     <span className="text-sm text-primary font-medium">Начни свой музыкальный путь</span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-bold mb-3">
+                  <h2 className="text-2xl md:text-3xl font-bold mb-3 text-text-primary">
                     Готов начать обучение?
                   </h2>
-                  <p className="text-gray-400 max-w-2xl mx-auto mb-6">
+                  <p className="text-text-secondary max-w-2xl mx-auto mb-6">
                     Выбери свой уровень и начни играть уже сегодня. Первые уроки совершенно бесплатно!
                   </p>
                   <Link href="/lessons?level=beginner" className="btn-primary inline-flex items-center gap-2">

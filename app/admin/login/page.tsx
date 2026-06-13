@@ -135,7 +135,6 @@ export default function AdminLogin() {
                 <div className="relative">
                   <input
                     type="email"
-                    placeholder="admin@guitarsync.ru"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
@@ -152,7 +151,6 @@ export default function AdminLogin() {
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
@@ -174,12 +172,6 @@ export default function AdminLogin() {
                   <Fingerprint className="w-3 h-3 text-green-500" />
                   <span className="text-xs text-gray-500">Защищённый вход</span>
                 </div>
-                <Link 
-                  href="/admin/forgot" 
-                  className="text-xs text-gray-500 hover:text-primary transition-colors"
-                >
-                  Забыли пароль?
-                </Link>
               </div>
 
               {/* Ошибка */}
@@ -234,7 +226,7 @@ export default function AdminLogin() {
         {/* Дополнительная информация */}
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-600">
-            © 2024 GuitarSync • Панель управления
+            © 2026 ГитарСинхро • Панель управления
           </p>
         </div>
       </div>

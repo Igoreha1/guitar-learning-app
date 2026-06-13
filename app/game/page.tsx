@@ -145,40 +145,69 @@ export default function GamePage() {
   };
 
   const toggleFavorite = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-    
-    try {
-      if (isFavorite) {
-        const res = await fetch(`/api/user/favorites?songId=${selectedSong?.id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          setIsFavorite(false);
-          setFavoritesList(prev => prev.filter(id => id !== selectedSong?.id));
+  const token = localStorage.getItem('token');
+  
+  // Проверка авторизации
+  if (!token) {
+    setIsAuthModalOpen(true);
+    return;
+  }
+  
+  // Проверка, что выбранная песня существует
+  if (!selectedSong || !selectedSong.id) {
+    console.error('Песня не выбрана или отсутствует ID');
+    return;
+  }
+  
+  console.log('Toggling favorite for song:', selectedSong.id, 'Current isFavorite:', isFavorite);
+  
+  try {
+    if (isFavorite) {
+      // Удаляем из избранного
+      const res = await fetch(`/api/user/favorites?songId=${selectedSong.id}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`
         }
+      });
+      
+      console.log('DELETE response status:', res.status);
+      
+      if (res.ok) {
+        setIsFavorite(false);
+        setFavoritesList(prev => prev.filter(id => id !== selectedSong.id));
+        console.log('Успешно удалено из избранного');
       } else {
-        const res = await fetch('/api/user/favorites', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ songId: selectedSong?.id })
-        });
-        if (res.ok) {
-          setIsFavorite(true);
-          setFavoritesList(prev => [...prev, selectedSong!.id]);
-        }
+        const data = await res.json();
+        console.error('Ошибка удаления:', data.error);
       }
-    } catch (error) {
-      console.error('Ошибка:', error);
+    } else {
+      // Добавляем в избранное
+      const res = await fetch('/api/user/favorites', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ songId: selectedSong.id })
+      });
+      
+      console.log('POST response status:', res.status);
+      
+      if (res.ok) {
+        const data = await res.json();
+        setIsFavorite(true);
+        setFavoritesList(prev => [...prev, selectedSong.id]);
+        console.log('Успешно добавлено в избранное');
+      } else {
+        const data = await res.json();
+        console.error('Ошибка добавления:', data.error);
+      }
     }
-  };
+  } catch (error) {
+    console.error('Ошибка при работе с избранным:', error);
+  }
+};
 
   // Фильтрация песен
   const filteredSongs = songs.filter(song => {
@@ -463,6 +492,7 @@ export default function GamePage() {
                           : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700'
                       }`}
                       title={!user ? 'Войдите в аккаунт' : isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
+                      disabled={!user}
                     >
                       <Heart className={`w-5 h-5 ${isFavorite ? 'fill-primary' : ''}`} />
                     </button>

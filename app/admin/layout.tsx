@@ -177,7 +177,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Version */}
         {!collapsed && (
           <div className="p-4 text-center">
-            <p className="text-xs text-gray-600">v2.0.0 • GuitarSync Admin</p>
+            <p className="text-xs text-gray-600">v2.0.0 • ГитарСинхро Админ</p>
           </div>
         )}
       </aside>

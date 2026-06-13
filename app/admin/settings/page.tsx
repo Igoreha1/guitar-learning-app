@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
-    siteName: 'GuitarSync',
+    siteName: 'ГитарСинхро',
     siteDescription: 'Интерактивный самоучитель игры на гитаре',
     adminEmail: 'admin@guitarsync.ru',
     itemsPerPage: '12'

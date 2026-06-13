@@ -1,9 +1,10 @@
+// features/game/GameEngine.ts
+
 import * as Tone from "tone";
 import { GameNote, GameSong, GameState } from "./types";
 import { audioEngine } from "@/lib/audioEngine";
 
 export class GameEngine {
-  private synth: Tone.PolySynth;
   private notes: GameNote[] = [];
   private hitNotes: Set<string> = new Set();
   private missedNotes: Set<string> = new Set();
@@ -12,12 +13,11 @@ export class GameEngine {
   private isGamePaused: boolean = false;
   private startOffset: number = 0;
   
-  // Буфер для аккордов (собираем несколько частот)
   private chordFrequencyBuffer: number[] = [];
   private chordDetectionTimer: NodeJS.Timeout | null = null;
-  private readonly CHORD_BUFFER_DELAY = 180; // мс для сбора аккорда
+  private readonly CHORD_BUFFER_DELAY = 70;
   private lastHitTime: number = 0;
-  private readonly HIT_COOLDOWN = 120;
+  private readonly HIT_COOLDOWN = 45;
   
   public state: GameState = {
     isPlaying: false,
@@ -34,10 +34,7 @@ export class GameEngine {
   private onNoteMissCallback?: (note: GameNote) => void;
   private onStateUpdateCallback?: (state: GameState) => void;
 
-  constructor() {
-    this.synth = new Tone.PolySynth(Tone.Synth).toDestination();
-    this.synth.set({ volume: -10 });
-  }
+  constructor() {}
 
   loadSong(song: GameSong) {
     this.notes = [...song.notes];
@@ -64,7 +61,7 @@ export class GameEngine {
         this.state.currentTime = audioEngine.getTime() - this.startOffset;
         this.onStateUpdateCallback?.(this.state);
       }
-    }, 50);
+    }, 16); // ← 60 FPS
   }
 
   pause() {
@@ -136,43 +133,81 @@ export class GameEngine {
     });
   }
 
+  private findChordByTime(currentTime: number): { notes: GameNote[]; accuracy: number } | null {
+    const timeWindow = 0.15;
+    const timeGroups = new Map<string, GameNote[]>();
+    
+    for (const note of this.notes) {
+      if (this.hitNotes.has(note.id) || this.missedNotes.has(note.id)) continue;
+      
+      const timeDiff = Math.abs(currentTime - note.time);
+      if (timeDiff <= timeWindow) {
+        const timeKey = note.time.toFixed(3);
+        if (!timeGroups.has(timeKey)) timeGroups.set(timeKey, []);
+        timeGroups.get(timeKey)!.push(note);
+      }
+    }
+    
+    for (const [_, notes] of timeGroups) {
+      if (notes.length >= 2) {
+        const avgAccuracy = notes.reduce((acc, note) => {
+          const timeDiff = Math.abs(currentTime - note.time);
+          return acc + Math.max(0, 100 - (timeDiff / timeWindow) * 100);
+        }, 0) / notes.length;
+        
+        return { notes, accuracy: avgAccuracy };
+      }
+    }
+    
+    return null;
+  }
+
   addPlayedNote(frequency: number) {
     if (!this.isGameActive || this.isGamePaused) return;
     
     const now = Date.now();
     if (now - this.lastHitTime < this.HIT_COOLDOWN) return;
     
-    // Сначала пытаемся найти одиночную ноту
     const currentTime = this.getCurrentTime();
+    
+    const chordByTime = this.findChordByTime(currentTime);
+    if (chordByTime) {
+      chordByTime.notes.forEach(note => {
+        if (!this.hitNotes.has(note.id)) {
+          this.hitNote(note, chordByTime.accuracy);
+        }
+      });
+      console.log(`🎸 АККОРД ЗАСЧИТАН! Нот: ${chordByTime.notes.length}, точность: ${chordByTime.accuracy.toFixed(1)}%`);
+      this.lastHitTime = now;
+      return;
+    }
+    
     const singleNoteMatch = this.findMatchingSingleNote(frequency, currentTime);
     
     if (singleNoteMatch) {
-      // Если нашли одиночную ноту — сразу попадаем
       this.hitNote(singleNoteMatch.note, singleNoteMatch.accuracy);
       this.lastHitTime = now;
       return;
     }
     
-    // Если не нашли одиночную ноту — возможно это аккорд, добавляем в буфер
     this.chordFrequencyBuffer.push(frequency);
     if (this.chordFrequencyBuffer.length > 10) {
       this.chordFrequencyBuffer.shift();
     }
     
-    // Откладываем проверку аккорда
     if (this.chordDetectionTimer) {
       clearTimeout(this.chordDetectionTimer);
     }
     
     this.chordDetectionTimer = setTimeout(() => {
-      this.checkChord();
+      this.checkChordByFrequency();
       this.chordDetectionTimer = null;
     }, this.CHORD_BUFFER_DELAY);
   }
 
   private findMatchingSingleNote(frequency: number, currentTime: number): { note: GameNote; accuracy: number } | null {
     const timeWindow = 0.3;
-    const tolerance = 0.025; // 2.5%
+    const tolerance = 0.06;
     
     let bestMatch: GameNote | null = null;
     let bestAccuracy = 0;
@@ -180,7 +215,7 @@ export class GameEngine {
     for (const note of this.notes) {
       if (this.hitNotes.has(note.id) || this.missedNotes.has(note.id)) continue;
       if (!note.frequency) continue;
-      if (note.chord) continue; // Пропускаем аккорды здесь
+      if (note.chord) continue;
       
       const timeDiff = Math.abs(currentTime - note.time);
       if (timeDiff > timeWindow) continue;
@@ -203,15 +238,14 @@ export class GameEngine {
     return null;
   }
 
-  private checkChord() {
+  private checkChordByFrequency() {
     if (!this.isGameActive || this.isGamePaused) return;
     if (this.chordFrequencyBuffer.length === 0) return;
     
     const currentTime = this.getCurrentTime();
     const timeWindow = 0.35;
-    const tolerance = 0.025;
+    const tolerance = 0.06;
     
-    // Ищем ожидаемые аккордовые ноты
     const expectedChordNotes = this.notes.filter(n => 
       !this.hitNotes.has(n.id) && 
       !this.missedNotes.has(n.id) &&
@@ -225,7 +259,6 @@ export class GameEngine {
       return;
     }
     
-    // Группируем по аккордам
     const chordGroups = new Map<string, GameNote[]>();
     expectedChordNotes.forEach(note => {
       if (note.chord) {
@@ -234,7 +267,6 @@ export class GameEngine {
       }
     });
     
-    // Для каждой сыгранной частоты ищем соответствие
     const hitChordNotes: GameNote[] = [];
     const usedIds = new Set<string>();
     
@@ -262,24 +294,28 @@ export class GameEngine {
     }
     
     if (hitChordNotes.length > 0) {
-      // Определяем, какой аккорд сыгран
       const chordName = hitChordNotes[0].chord;
-      const expectedGroup = chordGroups.get(chordName || '') || [];
+      if (!chordName) {
+        this.chordFrequencyBuffer = [];
+        return;
+      }
       
-      const isFullChord = expectedGroup.length === hitChordNotes.length;
+      const fullChord = chordGroups.get(chordName) || [];
       
       const avgAccuracy = hitChordNotes.reduce((acc, note) => {
         const timeDiff = Math.abs(currentTime - note.time);
         return acc + Math.max(0, 100 - (timeDiff / timeWindow) * 100);
       }, 0) / hitChordNotes.length;
       
-      // Отмечаем все ноты аккорда как попадания
-      hitChordNotes.forEach(note => {
-        this.hitNote(note, isFullChord ? avgAccuracy : avgAccuracy * 0.7);
+      fullChord.forEach(note => {
+        if (!this.hitNotes.has(note.id)) {
+          this.hitNote(note, avgAccuracy);
+        }
       });
+      
+      console.log(`🎸 Аккорд по частоте ${chordName} засчитан (${fullChord.length} нот)`);
     }
     
-    // Очищаем буфер
     this.chordFrequencyBuffer = [];
   }
 
@@ -289,7 +325,7 @@ export class GameEngine {
     this.hitNotes.add(note.id);
     this.state.hitNotes++;
     
-    const pointsMultiplier = note.chord ? 1.5 : 1;
+    const pointsMultiplier = note.chord ? 2 : 1;
     const points = Math.floor(50 + accuracy * 0.5 + this.state.combo * 5) * pointsMultiplier;
     this.state.score += points;
     this.state.combo++;
@@ -299,7 +335,6 @@ export class GameEngine {
     }
     
     this.updateAccuracy();
-    this.synth.triggerAttackRelease("C5", "8n");
     
     this.onNoteHitCallback?.(note, accuracy);
     this.onStateUpdateCallback?.(this.state);

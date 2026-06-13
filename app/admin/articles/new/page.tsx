@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Upload, X, Image as ImageIcon, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Upload, X, HelpCircle } from 'lucide-react';
 
 export default function NewArticlePage() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function NewArticlePage() {
     slug: '',
     title: '',
     category: 'lessons',
-    subcategory: 'Для начинающих',
+    subcategory: '',
     excerpt: '',
     content: '',
     image: '/images/default.jpg',
@@ -23,7 +23,8 @@ export default function NewArticlePage() {
     readingTime: 5,
     tags: '',
     status: 'published',
-    showOnHomepage: false
+    showOnHomepage: false,
+    difficulty: ''
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,17 +187,39 @@ export default function NewArticlePage() {
                 <option value="songs">Разбор песни</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Подкатегория</label>
-              <input
-                type="text"
-                value={form.subcategory}
-                onChange={(e) => setForm({ ...form, subcategory: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-red-500 transition"
-                placeholder="Для начинающих, Рок, Аккорды"
-              />
-            </div>
+
+            {/* Подкатегория — только для разборов песен */}
+            {form.category === 'songs' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Подкатегория</label>
+                <input
+                  type="text"
+                  value={form.subcategory}
+                  onChange={(e) => setForm({ ...form, subcategory: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-red-500 transition"
+                  placeholder="Рок, Поп, Аккорды..."
+                />
+              </div>
+            )}
           </div>
+
+          {/* Сложность - только для уроков */}
+          {form.category === 'lessons' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Сложность урока</label>
+              <select
+                value={form.difficulty}
+                onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
+                className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-red-500 transition"
+              >
+                <option value="">Не указано</option>
+                <option value="beginner">🌱 Начинающий</option>
+                <option value="intermediate">⭐ Средний</option>
+                <option value="advanced">🔥 Продвинутый</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Уровень сложности урока для пользователей</p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Краткое описание</label>

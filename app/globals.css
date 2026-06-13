@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Твои кастомные CSS переменные */
+/* ========== БАЗОВЫЕ ПЕРЕМЕННЫЕ ========== */
 :root {
   --primary: #ef4444;
   --primary-dark: #dc2626;
@@ -10,6 +10,28 @@
   --gray-dark: #1a1a2e;
   --gray: #2a2a3a;
   --gray-light: #3a3a4a;
+  
+  /* Переменные для тёмной темы (по умолчанию) */
+  --bg-body: linear-gradient(135deg, #0f0f1a 0%, #07070f 100%);
+  --bg-card: rgba(26, 26, 46, 0.5);
+  --bg-card-hover: rgba(26, 26, 46, 0.8);
+  --bg-header: rgba(15, 15, 26, 0.95);
+  --bg-footer: #0f0f1a;
+  --text-primary: #e4e4e7;
+  --text-secondary: #9ca3af;
+  --border-color: #2a2a3a;
+}
+
+/* Светлая тема */
+.light {
+  --bg-body: #f8f9fa;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f3f5;
+  --bg-header: rgba(255, 255, 255, 0.98);
+  --bg-footer: #f1f5f9;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --border-color: #e2e8f0;
 }
 
 /* Тема Tailwind */
@@ -24,12 +46,13 @@
   --color-gray-light: #3a3a4a;
 }
 
-/* Глобальные стили */
+/* ========== ГЛОБАЛЬНЫЕ СТИЛИ ========== */
 body {
-  background: linear-gradient(135deg, var(--color-dark) 0%, var(--color-darker) 100%);
-  color: #e4e4e7;
+  background: var(--bg-body);
+  color: var(--text-primary);
   font-family: 'Inter', 'Open Sans', system-ui, sans-serif;
   min-height: 100vh;
+  transition: background 0.3s ease, color 0.2s ease;
 }
 
 /* Анимированная фоновая сетка */
@@ -49,6 +72,12 @@ body::before {
   animation: gridMove 20s linear infinite;
 }
 
+.light body::before {
+  background-image: 
+    linear-gradient(rgba(239, 68, 68, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(239, 68, 68, 0.05) 1px, transparent 1px);
+}
+
 @keyframes gridMove {
   0% { transform: translate(0, 0); }
   100% { transform: translate(50px, 50px); }
@@ -61,20 +90,24 @@ body::before {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-gray-dark);
+  background: var(--gray-dark);
   border-radius: 10px;
 }
 
+.light ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+
 ::-webkit-scrollbar-thumb {
-  background: var(--color-primary);
+  background: var(--primary);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary-dark);
+  background: var(--primary-dark);
 }
 
-/* ========== КОМПОНЕНТЫ (через обычный CSS) ========== */
+/* ========== КОМПОНЕНТЫ ========== */
 
 /* Кнопки */
 .btn-primary {
@@ -83,7 +116,7 @@ body::before {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: white;
   border-radius: 9999px;
   font-weight: 600;
@@ -103,8 +136,8 @@ body::before {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  border: 2px solid var(--color-primary);
-  color: var(--color-primary);
+  border: 2px solid var(--primary);
+  color: var(--primary);
   border-radius: 9999px;
   font-weight: 600;
   transition: all 0.3s ease;
@@ -113,7 +146,7 @@ body::before {
 }
 
 .btn-outline:hover {
-  background: var(--color-primary);
+  background: var(--primary);
   color: white;
   transform: translateY(-2px);
 }
@@ -124,8 +157,8 @@ body::before {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: #2a2a3a;
-  color: #9ca3af;
+  background: var(--border-color);
+  color: var(--text-secondary);
   border-radius: 0.5rem;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -133,15 +166,15 @@ body::before {
 }
 
 .btn-secondary:hover {
-  background: #3a3a4a;
+  background: var(--primary);
   color: white;
 }
 
 /* Карточки */
 .card {
-  background: rgba(26, 26, 46, 0.5);
+  background: var(--bg-card);
   border-radius: 0.75rem;
-  border: 1px solid #2a2a3a;
+  border: 1px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
@@ -176,30 +209,39 @@ body::before {
   color: #f87171;
 }
 
+.light .badge {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
 /* Инпуты */
 .input {
   width: 100%;
   padding: 0.625rem 1rem;
   background: rgba(17, 24, 39, 0.5);
-  border: 1px solid #374151;
+  border: 1px solid var(--border-color);
   border-radius: 0.75rem;
-  color: white;
+  color: var(--text-primary);
   font-size: 0.875rem;
   transition: all 0.2s ease;
 }
 
+.light .input {
+  background: #ffffff;
+}
+
 .input:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--primary);
 }
 
 .input::placeholder {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 /* Утилиты */
 .text-gradient {
-  background: linear-gradient(135deg, var(--color-primary), #f97316);
+  background: linear-gradient(135deg, var(--primary), #f97316);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -220,19 +262,11 @@ body::before {
   }
 }
 
-/* Добавь в конец файла */
-
 /* Анимация градиента */
 @keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .animate-gradient {
@@ -265,12 +299,8 @@ body::before {
     transform: translateY(100vh) rotate(0deg);
     opacity: 0;
   }
-  10% {
-    opacity: 0.5;
-  }
-  90% {
-    opacity: 0.5;
-  }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
   100% {
     transform: translateY(-20vh) rotate(360deg);
     opacity: 0;
@@ -287,22 +317,6 @@ body::before {
 .delay-3000 { animation-delay: 3s; }
 .delay-4000 { animation-delay: 4s; }
 
-/* Пульсация для кнопок */
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-  }
-}
-
 /* Эффект для статистики */
 .stat-number {
   transition: all 0.3s ease;
@@ -312,6 +326,7 @@ body::before {
   transform: scale(1.1);
   text-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
 }
+
 /* Анимация для модального окна */
 @keyframes modalIn {
   from {
@@ -339,89 +354,282 @@ body::before {
   animation: shake 0.3s ease-in-out;
 }
 
-/* Анимация градиента */
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.animate-gradient {
-  background-size: 200% auto;
-  animation: gradient 3s ease infinite;
-}
-
-/* Анимация плавающих нот */
-@keyframes float {
-  0% {
-    transform: translateY(100vh) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.1;
-  }
-  90% {
-    opacity: 0.1;
-  }
-  100% {
-    transform: translateY(-20vh) rotate(360deg);
-    opacity: 0;
-  }
-}
-
-.animate-float {
-  animation: float linear infinite;
-}
-
-/* Анимация тряски */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-  20%, 40%, 60%, 80% { transform: translateX(2px); }
-}
-
-.animate-shake {
-  animation: shake 0.3s ease-in-out;
-}
-
-/* Задержки для анимаций */
-.delay-1000 {
-  animation-delay: 1s;
-}
-
+/* Стили для аккордов и песен */
 .chord-cell { 
-  color: #ef4444; 
+  color: var(--primary); 
   font-weight: bold; 
-  background: rgba(239,68,68,0.1); 
+  background: rgba(239, 68, 68, 0.1); 
   padding: 2px 8px; 
   border-radius: 6px; 
   display: inline-block; 
 }
+
 .song-table { 
   width: 100%; 
   font-family: monospace; 
   margin-bottom: 1rem;
 }
+
 .song-table td {
   vertical-align: top;
   padding-bottom: 0.5rem;
 }
+
 .chord-row td {
   padding-bottom: 0.25rem;
 }
+
 .text-row td {
   font-size: 1rem;
   line-height: 1.5;
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
+
 @media (max-width: 768px) {
   .text-row td {
     font-size: 0.85rem;
   }
+}
+
+/* ========== КНОПКА ПЕРЕКЛЮЧЕНИЯ ТЕМЫ ========== */
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.05);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ========== ДОПОЛНИТЕЛЬНЫЕ КЛАССЫ ДЛЯ ТЕМ ========== */
+.bg-header {
+  background: var(--bg-header);
+}
+
+.bg-footer {
+  background: var(--bg-footer);
+}
+
+.bg-card {
+  background: var(--bg-card);
+}
+
+.bg-card-hover {
+  background: var(--bg-card-hover);
+}
+
+.text-text-primary {
+  color: var(--text-primary);
+}
+
+.text-text-secondary {
+  color: var(--text-secondary);
+}
+
+.border-border-color {
+  border-color: var(--border-color);
+}
+
+/* Плавный переход для всех элементов при смене темы */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* ========== ПЕРЕОПРЕДЕЛЕНИЯ ДЛЯ СВЕТЛОЙ ТЕМЫ ========== */
+.light .bg-dark\/95,
+.light .bg-dark,
+.light .bg-dark\/50,
+.light .bg-dark\/80 {
+  background-color: #ffffff !important;
+}
+
+.light .bg-gradient-to-br.from-gray-dark\/50,
+.light .bg-gradient-to-br.to-dark\/50 {
+  background: #ffffff !important;
+}
+
+.light .border-gray-800,
+.light .border-gray-700 {
+  border-color: #e2e8f0 !important;
+}
+
+.light .bg-gray-800,
+.light .bg-gray-800\/50,
+.light .bg-gray-800\/30 {
+  background-color: #f8fafc !important;
+}
+
+.light .text-gray-300,
+.light .text-gray-400,
+.light .text-gray-500,
+.light .text-gray-600 {
+  color: #475569 !important;
+}
+
+.light .text-white {
+  color: #1e293b !important;
+}
+
+.light .bg-primary\/10 {
+  background-color: #fef2f2 !important;
+}
+
+.light .from-dark\/50,
+.light .via-dark\/30,
+.light .to-darker\/50 {
+  --tw-gradient-from: #f8f9fa;
+  --tw-gradient-to: #e2e8f0;
+}
+
+.light .bg-gradient-to-br.from-gray-dark\/50.to-dark\/50 {
+  background: #ffffff !important;
+}
+
+.light .hover\:bg-gray-700:hover {
+  background-color: #e2e8f0 !important;
+}
+
+.light .bg-dark\/95 {
+  background: #ffffff !important;
+}
+
+.light .bg-gradient-to-r.from-white.to-gray-400 {
+  background: linear-gradient(135deg, #1e293b, #475569);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.light .border-t.border-gray-800\/50 {
+  border-color: #e2e8f0 !important;
+}
+
+.light .bg-gradient-to-r.from-primary\/10.via-primary\/5.to-transparent {
+  background: linear-gradient(135deg, #fef2f2 0%, #ffffff 50%, #f8fafc 100%);
+}
+
+.light .bg-gray-900 {
+  background-color: #ffffff !important;
+}
+
+.light .text-gray-700 {
+  color: #334155 !important;
+}
+
+.light .from-dark\/50,
+.light .via-dark\/30,
+.light .to-darker\/50 {
+  --tw-gradient-from: #f8f9fa;
+  --tw-gradient-to: #e2e8f0;
+}
+
+.light .text-gray-500.text-sm {
+  color: #64748b !important;
+}
+
+.light .text-gray-500 {
+  color: #64748b !important;
+}
+
+/* ========== КЛАССЫ ДЛЯ ТЕКСТА В ТЁМНОЙ/СВЕТЛОЙ ТЕМЕ ========== */
+.dark .text-white {
+  color: #ffffff !important;
+}
+
+.dark .text-gray-900 {
+  color: #e4e4e7 !important;
+}
+
+.light .text-white {
+  color: #111827 !important;
+}
+
+.light .text-gray-900 {
+  color: #111827 !important;
+}
+
+/* Для Hero заголовка */
+.dark .hero-title {
+  color: #ffffff;
+}
+
+.light .hero-title {
+  color: #111827;
+}
+
+/* ========== ПЛАВНЫЕ АНИМАЦИИ БЕЗ ДЁРГАНЬЯ ========== */
+.card,
+.card *,
+.group,
+.group * {
+  will-change: transform, opacity, box-shadow, border-color;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.card .absolute {
+  transition: opacity 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.group:hover .card .absolute,
+.card:hover .absolute {
+  opacity: 1;
+}
+
+/* Убираем дёрганье при hover */
+.group {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.group:hover {
+  transform: translateY(-2px) translateZ(0);
+}
+
+.card {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.card:hover {
+  transform: translateY(-4px) translateZ(0);
+}
+
+/* Плавное появление для всех hover-эффектов */
+.transition-opacity,
+.transition-all,
+.transition-transform,
+.transition-colors,
+.transition-shadow {
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ========== ФИКС ДЁРГАНЬЯ ПРИ HOVER ========== */
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.hover-gpu {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Для карточек в grid */
+.grid > * {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }

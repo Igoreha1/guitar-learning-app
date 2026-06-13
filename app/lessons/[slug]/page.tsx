@@ -37,25 +37,21 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
   return (
     <div className="min-h-screen">
-      {/* Hero секция урока */}
-      <section className="relative overflow-hidden pt-20 pb-12">
-        <div className="absolute inset-0">
-          <img 
-            src={article.image} 
-            alt={article.title}
-            className="w-full h-full object-cover opacity-20 blur-sm"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-dark via-dark/95 to-dark" />
+      {/* Hero секция урока — адаптирована под светлую тему */}
+      <section className="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-gray-dark/30 via-gray-dark/20 to-dark/30">
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
         </div>
         
         <div className="relative z-10 max-w-5xl mx-auto px-4">
           {/* Навигация */}
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+          <div className="flex items-center gap-2 text-sm text-text-secondary mb-6">
             <Link href="/" className="hover:text-primary transition-colors">Главная</Link>
             <ChevronRight className="w-4 h-4" />
             <Link href="/lessons" className="hover:text-primary transition-colors">Уроки</Link>
             <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-300">{article.title}</span>
+            <span className="text-text-primary">{article.title}</span>
           </div>
 
           <div className="max-w-3xl mx-auto text-center">
@@ -68,11 +64,11 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               ))}
             </div>
             
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-text-primary">
               {article.title}
             </h1>
             
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-400">
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-text-secondary">
               <span className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 {new Date(article.createdAt).toLocaleDateString('ru-RU')}
@@ -98,7 +94,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       <section className="py-12">
         <div className="max-w-4xl mx-auto px-4">
           {/* Featured image */}
-          <div className="rounded-2xl overflow-hidden mb-8 border border-gray-800">
+          <div className="rounded-2xl overflow-hidden mb-8 border border-border-color">
             <img 
               src={article.image} 
               alt={article.title}
@@ -107,9 +103,9 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </div>
 
           {/* Прогресс урока */}
-          <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl p-4 mb-8 border border-gray-800">
+          <div className="bg-card rounded-xl p-4 mb-8 border border-border-color">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Ваш прогресс</span>
+              <span className="text-sm text-text-secondary">Ваш прогресс</span>
               <span className="text-sm text-primary">0%</span>
             </div>
             <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
@@ -118,17 +114,17 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </div>
 
           {/* Контент */}
-          <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-2xl p-6 md:p-8 border border-gray-800">
+          <div className="bg-card rounded-2xl p-6 md:p-8 border border-border-color">
             <div 
-              className="prose prose-invert prose-lg max-w-none
-                prose-headings:text-white prose-headings:font-bold
-                prose-p:text-gray-300 prose-p:leading-relaxed
+              className="prose prose-lg max-w-none
+                prose-headings:text-text-primary prose-headings:font-bold
+                prose-p:text-text-secondary prose-p:leading-relaxed
                 prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                prose-strong:text-white prose-strong:font-semibold
-                prose-code:text-primary prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded
-                prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-700
-                prose-blockquote:border-l-primary prose-blockquote:text-gray-400
-                prose-ul:text-gray-300 prose-ol:text-gray-300
+                prose-strong:text-text-primary prose-strong:font-semibold
+                prose-code:text-primary prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded
+                prose-pre:bg-gray-100 dark:prose-pre:bg-gray-900 prose-pre:border prose-pre:border-border-color
+                prose-blockquote:border-l-primary prose-blockquote:text-text-secondary
+                prose-ul:text-text-secondary prose-ol:text-text-secondary
                 prose-li:marker:text-primary"
               dangerouslySetInnerHTML={{ __html: article.content }}
             />
@@ -144,14 +140,14 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
           {/* Навигация между уроками */}
           {(prevLesson || nextLesson) && (
-            <div className="flex justify-between gap-4 mt-8 pt-8 border-t border-gray-800">
+            <div className="flex justify-between gap-4 mt-8 pt-8 border-t border-border-color">
               {prevLesson && (
                 <Link href={`/lessons/${prevLesson.slug}`} className="flex-1 group">
-                  <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl p-4 hover:border-primary/30 transition-all duration-300 border border-gray-800">
-                    <span className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                  <div className="bg-card rounded-xl p-4 hover:border-primary/30 transition-all duration-300 border border-border-color">
+                    <span className="text-xs text-text-secondary mb-1 flex items-center gap-1">
                       <ChevronLeft className="w-3 h-3" /> Предыдущий урок
                     </span>
-                    <p className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">
+                    <p className="text-sm font-medium text-text-primary group-hover:text-primary transition-colors line-clamp-1">
                       {prevLesson.title}
                     </p>
                   </div>
@@ -159,11 +155,11 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               )}
               {nextLesson && (
                 <Link href={`/lessons/${nextLesson.slug}`} className="flex-1 group text-right">
-                  <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl p-4 hover:border-primary/30 transition-all duration-300 border border-gray-800">
-                    <span className="text-xs text-gray-500 mb-1 flex items-center gap-1 justify-end">
+                  <div className="bg-card rounded-xl p-4 hover:border-primary/30 transition-all duration-300 border border-border-color">
+                    <span className="text-xs text-text-secondary mb-1 flex items-center gap-1 justify-end">
                       Следующий урок <ChevronRightIcon className="w-3 h-3" />
                     </span>
-                    <p className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">
+                    <p className="text-sm font-medium text-text-primary group-hover:text-primary transition-colors line-clamp-1">
                       {nextLesson.title}
                     </p>
                   </div>
@@ -175,17 +171,17 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       </section>
 
       {/* CTA секция - попробовать тренажёр */}
-      <section className="py-16 border-t border-gray-800">
+      <section className="py-16 border-t border-border-color">
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-8 md:p-12 text-center border border-primary/20">
             <div className="inline-flex items-center gap-2 bg-primary/20 rounded-full px-4 py-1.5 mb-4">
               <Target className="w-4 h-4 text-primary" />
               <span className="text-sm text-primary font-medium">Закрепи знания на практике</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3 text-text-primary">
               Попробуй наши упражнения
             </h2>
-            <p className="text-gray-400 max-w-2xl mx-auto mb-6">
+            <p className="text-text-secondary max-w-2xl mx-auto mb-6">
               В интерактивном тренажёре ты можешь отработать материал урока и получить мгновенную обратную связь
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

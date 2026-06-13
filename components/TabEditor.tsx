@@ -15,9 +15,14 @@ interface TabEditorProps {
   startOffset?: number;
 }
 
-const stringNames = ['E (6)', 'A (5)', 'D (4)', 'G (3)', 'B (2)', 'E (1)'];
+const stringNames = ['6 (E)', '5 (A)', '4 (D)', '3 (G)', '2 (B)', '1 (E)'];
 const stringColors = [
-  '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'
+  '#e74c3c', // 6 струна (красный)
+  '#e67e22', // 5 струна (оранжевый)
+  '#f1c40f', // 4 струна (жёлтый)
+  '#2ecc71', // 3 струна (зелёный)
+  '#3498db', // 2 струна (синий)
+  '#9b59b6'  // 1 струна (фиолетовый)
 ];
 
 const SUB_DIVISIONS = 4;
@@ -80,6 +85,7 @@ export default function TabEditor({
     }
   }, [audioUrl]);
 
+  // Правильное определение позиции мыши на грифе
   const getMousePosition = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -92,7 +98,11 @@ export default function TabEditor({
     const beatInMeasure = Math.floor((canvasX % MEASURE_WIDTH) / BEAT_WIDTH);
     const beat = Math.min(beatInMeasure + 1, timeSignature[0]);
     const subBeat = Math.floor(((canvasX % MEASURE_WIDTH) % BEAT_WIDTH) / SUB_BEAT_WIDTH);
-    const string = Math.floor((canvasY - 40) / LINE_HEIGHT);
+    
+    // Определяем струну: верхняя часть (маленький Y) = 6-я струна (индекс 0)
+    // Нижняя часть (большой Y) = 1-я струна (индекс 5)
+    const rawString = Math.floor((canvasY - 40) / LINE_HEIGHT);
+    const string = Math.min(5, Math.max(0, rawString));
     
     if (string < 0 || string > 5 || measure < 1 || beat < 1) return null;
     return { measure, beat, subBeat, string, canvasX, canvasY };
@@ -190,9 +200,11 @@ export default function TabEditor({
     canvas.width = width;
     canvas.height = TOTAL_HEIGHT;
     
+    // Фон
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, width, TOTAL_HEIGHT);
     
+    // Отрисовка струн (сверху вниз: 6→5→4→3→2→1)
     for (let i = 0; i < 6; i++) {
       const y = 40 + i * LINE_HEIGHT;
       ctx.beginPath();
@@ -208,6 +220,7 @@ export default function TabEditor({
     
     const measuresShown = Math.ceil(width / MEASURE_WIDTH) + 1;
     
+    // Отрисовка тактов и долей
     for (let i = 0; i <= measuresShown; i++) {
       const measure = startMeasure + i;
       const x = i * MEASURE_WIDTH;
@@ -251,6 +264,7 @@ export default function TabEditor({
       }
     }
     
+    // Отрисовка нот
     notes.forEach(note => {
       if (note.measure < startMeasure || note.measure > startMeasure + measuresShown) return;
       
@@ -279,6 +293,7 @@ export default function TabEditor({
       ctx.shadowBlur = 0;
     });
     
+    // Отрисовка курсора воспроизведения
     if (isPlaying) {
       const x = (playheadMeasure - startMeasure) * MEASURE_WIDTH + 
                 (playheadBeat - 1) * BEAT_WIDTH + 

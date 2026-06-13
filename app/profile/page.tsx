@@ -7,7 +7,8 @@ import {
   User, Mail, Calendar, Trophy, Target, Clock, 
   Heart, Music, Star, TrendingUp, Award, 
   ChevronRight, Play, Trash2, LogOut, Settings,
-  Sparkles, Zap, Shield, Guitar, BookOpen, Bookmark, Eye
+  Sparkles, Zap, Shield, Guitar, BookOpen, Bookmark, Eye,
+  Bell, BellOff
 } from 'lucide-react';
 
 interface User {
@@ -77,8 +78,11 @@ export default function ProfilePage() {
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'scores' | 'favorites' | 'saved'>('scores');
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
   const router = useRouter();
 
+  // Загрузка данных пользователя
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -88,6 +92,72 @@ export default function ProfilePage() {
 
     fetchUserData(token);
   }, []);
+
+  // Проверка подписки после загрузки user
+  useEffect(() => {
+    if (user?.email) {
+      checkSubscriptionStatus(user.email);
+    }
+  }, [user?.email]);
+
+  const checkSubscriptionStatus = async (email: string) => {
+    setCheckingSubscription(true);
+    try {
+      const res = await fetch(`/api/subscribe/status?email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      setIsSubscribed(data.isSubscribed);
+    } catch (error) {
+      console.error('Ошибка проверки подписки:', error);
+    } finally {
+      setCheckingSubscription(false);
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    const token = localStorage.getItem('token');
+    if (!token || !user?.email) return;
+    
+    try {
+      const res = await fetch('/api/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email })
+      });
+      
+      if (res.ok) {
+        setIsSubscribed(false);
+        alert('Вы отписались от рассылки');
+      } else {
+        alert('Ошибка при отписке');
+      }
+    } catch (error) {
+      alert('Ошибка соединения');
+    }
+  };
+
+  const handleSubscribe = async () => {
+    const token = localStorage.getItem('token');
+    if (!token || !user?.email) return;
+    
+    try {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, name: user.name })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        setIsSubscribed(true);
+        alert(data.message || 'Вы подписались на рассылку! Проверьте почту.');
+      } else {
+        alert(data.error || 'Ошибка при подписке');
+      }
+    } catch (error) {
+      alert('Ошибка соединения');
+    }
+  };
 
   const fetchUserData = async (token: string) => {
     try {
@@ -129,7 +199,6 @@ export default function ProfilePage() {
         setFavorites(favData.favorites);
       }
 
-      // Загружаем сохранённые статьи
       const savedRes = await fetch('/api/user/saved', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -171,10 +240,19 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/');
-  };
+  // Очищаем localStorage
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  
+  // Очищаем cookies
+  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  
+  // Используем router.push с последующей перезагрузкой
+  router.push('/');
+  setTimeout(() => {
+    window.location.reload();
+  }, 100);
+};
 
   if (loading) {
     return (
@@ -261,13 +339,39 @@ export default function ProfilePage() {
                   </span>
                 </div>
               </div>
-              <Link
-                href="/profile/edit"
-                className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
-              >
-                <Settings className="w-4 h-4" />
-                Редактировать
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/profile/edit"
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
+                >
+                  <Settings className="w-4 h-4" />
+                  Редактировать
+                </Link>
+
+                {/* Кнопка управления подпиской */}
+                {!checkingSubscription && (
+                  <button
+                    onClick={isSubscribed ? handleUnsubscribe : handleSubscribe}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
+                      isSubscribed 
+                        ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/30' 
+                        : 'bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30'
+                    }`}
+                  >
+                    {isSubscribed ? (
+                      <>
+                        <BellOff className="w-4 h-4" />
+                        Отписаться
+                      </>
+                    ) : (
+                      <>
+                        <Bell className="w-4 h-4" />
+                        Подписаться
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -354,7 +458,7 @@ export default function ProfilePage() {
                     <div className="text-center py-12">
                       <div className="text-6xl mb-4">🎮</div>
                       <p className="text-gray-400 mb-4">У вас пока нет рекордов</p>
-                      <Link href="/game" className="btn-primary inline-flex items-center gap-2">
+                      <Link href="/game" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all">
                         <Play className="w-4 h-4" />
                         Начать играть
                       </Link>
@@ -405,7 +509,7 @@ export default function ProfilePage() {
                     <div className="text-center py-12">
                       <div className="text-6xl mb-4">❤️</div>
                       <p className="text-gray-400 mb-4">Нет избранных песен</p>
-                      <Link href="/game" className="btn-primary inline-flex items-center gap-2">
+                      <Link href="/game" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all">
                         <Music className="w-4 h-4" />
                         Выбрать песни
                       </Link>
@@ -456,7 +560,7 @@ export default function ProfilePage() {
                     <div className="text-center py-12">
                       <div className="text-6xl mb-4">📖</div>
                       <p className="text-gray-400 mb-4">Нет сохранённых статей</p>
-                      <Link href="/lessons" className="btn-primary inline-flex items-center gap-2">
+                      <Link href="/lessons" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all">
                         <BookOpen className="w-4 h-4" />
                         К урокам
                       </Link>

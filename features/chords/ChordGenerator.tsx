@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import Fretboard from './Fretboard';
 import { notes, chordTypes, getChordByNoteAndType, ChordShape, getAllChords } from './chordsData';
-import { Search, ChevronDown, ChevronUp, Guitar, Music, Sparkles, Heart, Star, Volume2, Info, Fingerprint } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Guitar, Music, Sparkles, Heart, Star, Volume2, Info, Fingerprint, Play, Pause, Loader2 } from 'lucide-react';
+import { getChordPlayer } from './ChordPlayer';
 
 export default function ChordGenerator() {
+  const [isDark, setIsDark] = useState(true);
   const [selectedNote, setSelectedNote] = useState('C');
   const [selectedType, setSelectedType] = useState('Major');
   const [currentChord, setCurrentChord] = useState<ChordShape>(getChordByNoteAndType('C', 'Major'));
@@ -13,6 +15,35 @@ export default function ChordGenerator() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAllChords, setShowAllChords] = useState(false);
   const [favoriteChords, setFavoriteChords] = useState<string[]>([]);
+  
+  // Состояния для воспроизведения звука
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
+
+  // Следим за изменением темы
+  useEffect(() => {
+    const checkTheme = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setIsDark(isDarkMode);
+    };
+    
+    checkTheme();
+    
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  // Инициализация плеера
+  useEffect(() => {
+    const initPlayer = async () => {
+      const player = getChordPlayer();
+      setTimeout(() => setPlayerReady(true), 100);
+    };
+    initPlayer();
+  }, []);
 
   // Загрузка избранного из localStorage
   useEffect(() => {
@@ -27,6 +58,11 @@ export default function ChordGenerator() {
     setCurrentChord(chord);
     setSelectedNote(note);
     setSelectedType(type);
+    if (isPlaying) {
+      const player = getChordPlayer();
+      player.stopChord();
+      setIsPlaying(false);
+    }
   };
 
   const getChordFullName = () => {
@@ -45,12 +81,48 @@ export default function ChordGenerator() {
 
   const isFavorite = favoriteChords.includes(`${selectedNote}${selectedType}`);
 
+  const playChordSound = async () => {
+    if (isPlaying) {
+      const player = getChordPlayer();
+      player.stopChord();
+      setIsPlaying(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const player = getChordPlayer();
+      const chordName = getChordFullName();
+      await player.playChord(chordName, 2.5);
+      setIsPlaying(true);
+      
+      setTimeout(() => {
+        setIsPlaying(false);
+      }, 2500);
+    } catch (error) {
+      console.error('Ошибка воспроизведения:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const filteredChordTypes = chordTypes.filter(type =>
     type.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     type.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const allChordsList = getAllChords();
+
+  // Стили в зависимости от темы
+  const styles = {
+    cardBg: isDark ? 'bg-gradient-to-br from-gray-dark/50 to-dark/50 border-gray-800' : 'bg-white border-gray-200 shadow-sm',
+    textPrimary: isDark ? 'text-white' : 'text-gray-800',
+    textSecondary: isDark ? 'text-gray-400' : 'text-gray-600',
+    textMuted: isDark ? 'text-gray-500' : 'text-gray-400',
+    inputBg: isDark ? 'bg-gray-800/50 border-gray-700 text-white' : 'bg-gray-100 border-gray-300 text-gray-800',
+    buttonBg: isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+    accentBg: isDark ? 'bg-gray-800/30 border-gray-700' : 'bg-gray-50 border-gray-200',
+  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -61,13 +133,13 @@ export default function ChordGenerator() {
           <span className="text-sm text-primary font-medium">Интерактивный справочник</span>
         </div>
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+          <span className={styles.textPrimary}>
             Генератор аккордов
           </span>
           <br />
           <span className="text-gradient">для гитары</span>
         </h1>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+        <p className={`${styles.textSecondary} text-lg max-w-2xl mx-auto`}>
           Выберите ноту и тип аккорда — получите аппликатуру на грифе с подсказками для пальцев
         </p>
       </div>
@@ -77,22 +149,22 @@ export default function ChordGenerator() {
         <div className="lg:col-span-1">
           <div className="sticky top-24 space-y-6">
             {/* Поиск */}
-            <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-2xl border border-gray-800 p-5">
+            <div className={`rounded-2xl border p-5 ${styles.cardBg}`}>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${styles.textMuted}`} />
                 <input
                   type="text"
                   placeholder="Поиск аккорда (C, Dm, G7...)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-colors"
+                  className={`w-full pl-10 pr-4 py-2 ${styles.inputBg} rounded-xl focus:outline-none focus:border-primary transition-colors`}
                 />
               </div>
             </div>
 
             {/* Выбор ноты */}
-            <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-2xl border border-gray-800 p-5">
-              <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <div className={`rounded-2xl border p-5 ${styles.cardBg}`}>
+              <h2 className={`text-lg font-bold ${styles.textPrimary} mb-4 flex items-center gap-2`}>
                 <Music className="w-5 h-5 text-primary" />
                 Основная нота
               </h2>
@@ -104,7 +176,7 @@ export default function ChordGenerator() {
                     className={`py-2.5 rounded-xl font-bold transition-all duration-200 ${
                       selectedNote === note.name
                         ? 'bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg shadow-primary/30'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        : styles.buttonBg
                     }`}
                   >
                     {note.name}
@@ -115,15 +187,15 @@ export default function ChordGenerator() {
             </div>
 
             {/* Выбор типа аккорда */}
-            <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-2xl border border-gray-800 p-5">
+            <div className={`rounded-2xl border p-5 ${styles.cardBg}`}>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <h2 className={`text-lg font-bold ${styles.textPrimary} flex items-center gap-2`}>
                   <Fingerprint className="w-5 h-5 text-primary" />
                   Тип аккорда
                 </h2>
                 <button
                   onClick={() => setShowAllChords(!showAllChords)}
-                  className="text-xs text-gray-400 hover:text-primary transition-colors"
+                  className={`text-xs ${styles.textMuted} hover:text-primary transition-colors`}
                 >
                   {showAllChords ? 'Свернуть' : 'Показать все'}
                 </button>
@@ -137,7 +209,7 @@ export default function ChordGenerator() {
                     className={`py-2 px-3 rounded-xl text-sm font-medium transition-all duration-200 text-left ${
                       selectedType === type.name
                         ? 'bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg shadow-primary/30'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        : styles.buttonBg
                     }`}
                   >
                     <span>{type.name}</span>
@@ -148,31 +220,31 @@ export default function ChordGenerator() {
             </div>
 
             {/* Инфо и избранное */}
-            <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-2xl border border-gray-800 p-5">
+            <div className={`rounded-2xl border p-5 ${styles.cardBg}`}>
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <div className="text-sm text-gray-500">Текущий аккорд</div>
+                  <div className={`text-sm ${styles.textMuted}`}>Текущий аккорд</div>
                   <div className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
                     {getChordFullName()}
                   </div>
                 </div>
                 <button
                   onClick={() => toggleFavorite(`${selectedNote}${selectedType}`)}
-                  className="p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                  className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                 >
-                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : styles.textMuted}`} />
                 </button>
               </div>
               
               {currentChord.description && (
-                <p className="text-xs text-gray-400 mt-2 p-2 bg-gray-800/50 rounded-lg">
+                <p className={`text-xs ${styles.textMuted} mt-2 p-2 ${isDark ? 'bg-gray-800/50' : 'bg-gray-100'} rounded-lg`}>
                   {currentChord.description}
                 </p>
               )}
 
               {/* Часто используемые аккорды */}
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              <div className={`mt-4 pt-4 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+                <div className={`text-xs ${styles.textMuted} mb-2 flex items-center gap-1`}>
                   <Star className="w-3 h-3" />
                   Часто ищут:
                 </div>
@@ -185,7 +257,7 @@ export default function ChordGenerator() {
                         const type = popular.includes('m') ? 'Minor' : 'Major';
                         updateChord(note, type);
                       }}
-                      className="px-3 py-1 text-xs bg-gray-800 rounded-lg hover:bg-primary/20 hover:text-primary transition-colors"
+                      className={`px-3 py-1 text-xs ${styles.buttonBg} rounded-lg hover:bg-primary/20 hover:text-primary transition-colors`}
                     >
                       {popular}
                     </button>
@@ -198,22 +270,48 @@ export default function ChordGenerator() {
 
         {/* Правая панель - визуализация */}
         <div className="lg:col-span-2">
-          <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-2xl border border-gray-800 p-6">
-            {/* Заголовок */}
+          <div className={`rounded-2xl border p-6 ${styles.cardBg}`}>
+            {/* Заголовок с кнопкой прослушивания */}
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-white">
+                <h2 className={`text-2xl font-bold ${styles.textPrimary}`}>
                   Аппликатура <span className="text-gradient">{getChordFullName()}</span>
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">Схема зажатия на грифе гитары</p>
+                <p className={`text-sm ${styles.textMuted} mt-1`}>Схема зажатия на грифе гитары</p>
               </div>
-              <button
-                onClick={() => setShowFingerHint(!showFingerHint)}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-xl text-sm text-gray-300 hover:bg-primary/20 hover:text-primary transition-all duration-200"
-              >
-                {showFingerHint ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {showFingerHint ? 'Скрыть пальцы' : 'Показать пальцы'}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={playChordSound}
+                  disabled={!playerReady}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 ${
+                    isPlaying
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-gradient-to-r from-primary to-primary-dark text-white hover:shadow-lg hover:shadow-primary/30'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isPlaying ? (
+                    <>
+                      <Pause className="w-4 h-4" />
+                      Остановить
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-4 h-4" />
+                      Прослушать аккорд
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={() => setShowFingerHint(!showFingerHint)}
+                  className={`flex items-center gap-2 px-4 py-2 ${styles.buttonBg} rounded-xl text-sm transition-all duration-200 hover:bg-primary/20 hover:text-primary`}
+                >
+                  {showFingerHint ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showFingerHint ? 'Скрыть пальцы' : 'Показать пальцы'}
+                </button>
+              </div>
             </div>
 
             {/* Гриф */}
@@ -228,59 +326,59 @@ export default function ChordGenerator() {
             </div>
 
             {/* Легенда */}
-            <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg">
+            <div className={`mt-6 flex flex-wrap justify-center gap-4 text-xs`}>
+              <div className={`flex items-center gap-2 px-3 py-1.5 ${styles.accentBg} rounded-lg`}>
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className="text-gray-300">1 — указательный</span>
+                <span className={styles.textSecondary}>1 — указательный</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg">
+              <div className={`flex items-center gap-2 px-3 py-1.5 ${styles.accentBg} rounded-lg`}>
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-gray-300">2 — средний</span>
+                <span className={styles.textSecondary}>2 — средний</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg">
+              <div className={`flex items-center gap-2 px-3 py-1.5 ${styles.accentBg} rounded-lg`}>
                 <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                <span className="text-gray-300">3 — безымянный</span>
+                <span className={styles.textSecondary}>3 — безымянный</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg">
+              <div className={`flex items-center gap-2 px-3 py-1.5 ${styles.accentBg} rounded-lg`}>
                 <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                <span className="text-gray-300">4 — мизинец</span>
+                <span className={styles.textSecondary}>4 — мизинец</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg">
+              <div className={`flex items-center gap-2 px-3 py-1.5 ${styles.accentBg} rounded-lg`}>
                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                <span className="text-gray-300">○ — открытая</span>
+                <span className={styles.textSecondary}>○ — открытая</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg">
+              <div className={`flex items-center gap-2 px-3 py-1.5 ${styles.accentBg} rounded-lg`}>
                 <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-                <span className="text-gray-300">⊗ — не играть</span>
+                <span className={styles.textSecondary}>⊗ — не играть</span>
               </div>
             </div>
 
             {/* Схема струн */}
-            <div className="mt-6 p-5 bg-gray-800/30 rounded-xl border border-gray-700">
-              <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+            <div className={`mt-6 p-5 ${styles.accentBg} rounded-xl border`}>
+              <h3 className={`font-semibold ${styles.textPrimary} mb-3 flex items-center gap-2`}>
                 <Info className="w-4 h-4 text-primary" />
                 Схема зажатия:
               </h3>
               <div className="space-y-2 text-sm">
                 {currentChord.strings.map((fret, idx) => (
-                  <div key={idx} className="flex items-center gap-4 p-2 rounded-lg hover:bg-gray-800/50 transition-colors">
-                    <div className="w-24 text-gray-400 font-mono">{idx + 1}-я струна:</div>
+                  <div key={idx} className={`flex items-center gap-4 p-2 rounded-lg ${isDark ? 'hover:bg-gray-800/50' : 'hover:bg-gray-100'} transition-colors`}>
+                    <div className={`w-24 ${styles.textMuted} font-mono`}>{idx + 1}-я струна:</div>
                     {fret === null && (
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center text-xs text-white">⊗</div>
-                        <span className="text-gray-500">не играть</span>
+                        <span className={styles.textMuted}>не играть</span>
                       </div>
                     )}
                     {fret === 0 && (
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-xs text-white">○</div>
-                        <span className="text-green-400">открытая струна</span>
+                        <span className="text-green-500">открытая струна</span>
                       </div>
                     )}
                     {fret && fret > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-primary text-lg">{fret}</span>
-                        <span className="text-gray-400">лад</span>
+                        <span className={styles.textMuted}>лад</span>
                         {currentChord.fingers[idx] && (
                           <span className="flex items-center gap-1 ml-2">
                             <div 
@@ -293,7 +391,7 @@ export default function ChordGenerator() {
                             >
                               {currentChord.fingers[idx]}
                             </div>
-                            <span className="text-gray-500 text-xs">палец</span>
+                            <span className={`text-xs ${styles.textMuted}`}>палец</span>
                           </span>
                         )}
                       </div>
@@ -303,23 +401,23 @@ export default function ChordGenerator() {
               </div>
             </div>
 
-            {/* Советы и звук */}
+            {/* Советы */}
             <div className="mt-4 grid md:grid-cols-2 gap-4">
               <div className="p-4 bg-primary/10 rounded-xl border border-primary/20">
                 <h4 className="font-semibold text-primary mb-2 flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   Совет по зажатию:
                 </h4>
-                <p className="text-sm text-gray-300">
+                <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                   {currentChord.tip || 'Прижимайте струны ближе к ладовому порожку для чистого звучания. Пальцы ставьте вертикально.'}
                 </p>
               </div>
-              <div className="p-4 bg-gray-800/30 rounded-xl border border-gray-700">
-                <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+              <div className={`p-4 ${styles.accentBg} rounded-xl border`}>
+                <h4 className={`font-semibold ${styles.textPrimary} mb-2 flex items-center gap-2`}>
                   <Volume2 className="w-4 h-4 text-primary" />
                   Альтернативные аппликатуры:
                 </h4>
-                <p className="text-sm text-gray-400">
+                <p className={`text-sm ${styles.textMuted}`}>
                   Этот аккорд можно также зажать на других позициях грифа.
                   Попробуйте использовать баррэ для более насыщенного звучания.
                 </p>
@@ -328,8 +426,8 @@ export default function ChordGenerator() {
           </div>
 
           {/* Рекомендуемые аккорды */}
-          <div className="mt-6 bg-gradient-to-br from-gray-dark/30 to-dark/30 rounded-2xl border border-gray-800 p-5">
-            <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+          <div className={`mt-6 rounded-2xl border p-5 ${styles.cardBg}`}>
+            <h3 className={`font-semibold ${styles.textPrimary} mb-3 flex items-center gap-2`}>
               <Star className="w-4 h-4 text-primary" />
               Рекомендуемые аккорды
             </h3>
@@ -349,7 +447,7 @@ export default function ChordGenerator() {
                     const type = rec.chord.includes('m') ? 'Minor' : 'Major';
                     updateChord(note, type);
                   }}
-                  className="px-4 py-2 bg-gray-800 rounded-xl text-sm text-gray-300 hover:bg-primary/20 hover:text-primary transition-all duration-200"
+                  className={`px-4 py-2 ${styles.buttonBg} rounded-xl text-sm transition-all duration-200 hover:bg-primary/20 hover:text-primary`}
                 >
                   {rec.name}
                 </button>

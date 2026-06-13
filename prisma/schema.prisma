@@ -18,13 +18,19 @@ model User {
   phone     String?
   social    Json?
   avatar    String?
+  
+  isVerified    Boolean  @default(false)  // подтверждён ли email
+  isBlocked     Boolean  @default(false)  // заблокирован ли пользователь
+  verificationCode String? @map("verification_code")  // код подтверждения
+  verificationExpires DateTime? @map("verification_expires") // срок действия кода
+  
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   
   scores    Score[]
   favorites Favorite[]
   progress  Progress[]
-  savedArticles SavedArticle[]  // ← добавить
+  savedArticles SavedArticle[]
   
   @@map("users")
 }
@@ -41,6 +47,17 @@ model SavedArticle {
   
   @@unique([userId, articleId])
   @@map("saved_articles")
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("subscribers")
 }
 
 model Song {
@@ -138,8 +155,9 @@ model Article {
   showOnHomepage Boolean @default(false)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  difficulty  String?  @default("")  // ← ДОБАВИТЬ ЭТУ СТРОКУ
   
-  savedBy     SavedArticle[]  // ← добавить
+  savedBy     SavedArticle[]
   
   @@map("articles")
 }

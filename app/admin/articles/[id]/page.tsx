@@ -27,7 +27,8 @@ export default function EditArticlePage() {
     readingTime: 5,
     tags: '',
     status: 'published',
-    showOnHomepage: false
+    showOnHomepage: false,
+    difficulty: ''
   });
 
   useEffect(() => {
@@ -37,41 +38,42 @@ export default function EditArticlePage() {
   }, [articleId]);
 
   const loadArticle = async () => {
-  try {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/articles?id=${articleId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await res.json();
-    
-    if (data && data.id) {
-      setForm({
-        id: data.id,
-        slug: data.slug,
-        title: data.title,
-        category: data.category,
-        subcategory: data.subcategory,
-        excerpt: data.excerpt,
-        content: data.content,
-        image: data.image || '/images/default.jpg',
-        author: data.author,
-        readingTime: data.readingTime,
-        tags: Array.isArray(data.tags) ? data.tags.join(', ') : '',
-        status: data.status,
-        showOnHomepage: data.showOnHomepage || false
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/articles?id=${articleId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-    } else {
-      alert('Статья не найдена');
+      const data = await res.json();
+      
+      if (data && data.id) {
+        setForm({
+          id: data.id,
+          slug: data.slug,
+          title: data.title,
+          category: data.category,
+          subcategory: data.subcategory || '',
+          excerpt: data.excerpt,
+          content: data.content,
+          image: data.image || '/images/default.jpg',
+          author: data.author,
+          readingTime: data.readingTime,
+          tags: Array.isArray(data.tags) ? data.tags.join(', ') : '',
+          status: data.status,
+          showOnHomepage: data.showOnHomepage || false,
+          difficulty: data.difficulty || ''
+        });
+      } else {
+        alert('Статья не найдена');
+        router.push('/admin/articles');
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки:', error);
+      alert('Ошибка загрузки статьи');
       router.push('/admin/articles');
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Ошибка загрузки:', error);
-    alert('Ошибка загрузки статьи');
-    router.push('/admin/articles');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -233,16 +235,39 @@ export default function EditArticlePage() {
                 <option value="songs">Разбор песни</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Подкатегория</label>
-              <input
-                type="text"
-                value={form.subcategory}
-                onChange={(e) => setForm({ ...form, subcategory: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-red-500 transition"
-              />
-            </div>
+
+            {/* Подкатегория — только для разборов песен */}
+            {form.category === 'songs' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Подкатегория</label>
+                <input
+                  type="text"
+                  value={form.subcategory}
+                  onChange={(e) => setForm({ ...form, subcategory: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-red-500 transition"
+                  placeholder="Рок, Поп, Аккорды..."
+                />
+              </div>
+            )}
           </div>
+
+          {/* Сложность - только для уроков */}
+          {form.category === 'lessons' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Сложность урока</label>
+              <select
+                value={form.difficulty}
+                onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
+                className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-red-500 transition"
+              >
+                <option value="">Не указано</option>
+                <option value="beginner">🌱 Начинающий</option>
+                <option value="intermediate">⭐ Средний</option>
+                <option value="advanced">🔥 Продвинутый</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Уровень сложности урока для пользователей</p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Краткое описание</label>
@@ -256,7 +281,7 @@ export default function EditArticlePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Содержание (HTML)</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Содержание</label>
             <textarea
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}

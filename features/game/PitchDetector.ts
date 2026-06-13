@@ -1,3 +1,5 @@
+// features/game/PitchDetector.ts
+
 export class PitchDetector {
   private audioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
@@ -8,7 +10,7 @@ export class PitchDetector {
   private distortionNode: WaveShaperNode | null = null;
   private reverbNode: ConvolverNode | null = null;
   private filterNode: BiquadFilterNode | null = null;
-  private preFilterNode: BiquadFilterNode | null = null; // Дополнительный фильтр
+  private preFilterNode: BiquadFilterNode | null = null;
   
   private isRunning: boolean = false;
   private isMonitoring: boolean = false;
@@ -30,25 +32,35 @@ export class PitchDetector {
 
   async init() {
     try {
+      // Оптимизированные настройки для минимальной задержки (убираем latency)
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: false,
           noiseSuppression: false,
-          autoGainControl: false
+          autoGainControl: false,
+          channelCount: 1 // Моно для гитары
         } 
       });
       
-      this.audioContext = new AudioContext();
+      // Создаём AudioContext с интерактивной задержкой
+      this.audioContext = new AudioContext({
+        latencyHint: 'interactive' // Минимальная задержка для интерактива
+      });
+      
+      // Пытаемся установить меньшую задержку через baseLatency (не у всех браузеров)
+      // Это свойство только для чтения, но мы можем проверить текущую задержку
+      console.log(`🎸 Базовая задержка AudioContext: ${this.audioContext.baseLatency * 1000} мс`);
+      
       this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.analyserNode = this.audioContext.createAnalyser();
-      this.analyserNode.fftSize = 2048;
+      this.analyserNode.fftSize = 1024; // Уменьшаем для скорости (было 2048)
       
       this.gainNode = this.audioContext.createGain();
       this.gainNode.gain.value = 0;
       
       // Жёсткий дисторшн
       this.distortionNode = this.audioContext.createWaveShaper();
-      this.setDistortionCurve(30); // Увеличиваем интенсивность с 30 до 50
+      this.setDistortionCurve(30);
       
       // Предварительный фильтр для более плотного звука
       this.preFilterNode = this.audioContext.createBiquadFilter();
@@ -72,7 +84,7 @@ export class PitchDetector {
       
       await this.audioContext.resume();
       
-      console.log("✅ Микрофон подключен!");
+      console.log("✅ Микрофон подключен! Задержка минимальна.");
       return true;
     } catch (error) {
       console.error("❌ Ошибка доступа к микрофону:", error);
@@ -83,14 +95,11 @@ export class PitchDetector {
   private setDistortionCurve(amount: number) {
     if (!this.distortionNode) return;
     
-    const k = amount;
     const samples = 44100;
     const curve = new Float32Array(samples);
     
-    // Более агрессивная кривая для жёсткого дисторшна
     for (let i = 0; i < samples; ++i) {
       const x = i * 2 / samples - 1;
-      // Жёсткая клиппинг-кривая
       if (Math.abs(x) < 0.3) {
         curve[i] = x * 3;
       } else if (Math.abs(x) < 0.6) {
@@ -101,14 +110,16 @@ export class PitchDetector {
     }
     
     this.distortionNode.curve = curve;
-    this.distortionNode.oversample = '4x';
+    this.distortionNode.oversample = '2x'; // Уменьшаем oversample для скорости
   }
 
+  // Прямой мониторинг без дополнительной обработки для минимальной задержки
   private buildCleanChain() {
     if (!this.sourceNode || !this.gainNode || !this.analyserNode || !this.audioContext) return;
     
     try {
       this.sourceNode.disconnect();
+      // Прямое соединение без дополнительных узлов для минимальной задержки
       this.sourceNode.connect(this.analyserNode);
       this.sourceNode.connect(this.gainNode);
       this.gainNode.connect(this.audioContext.destination);
@@ -123,7 +134,7 @@ export class PitchDetector {
     try {
       this.sourceNode.disconnect();
       this.sourceNode.connect(this.analyserNode);
-      // Цепочка: предфильтр -> дисторшн -> фильтр -> усиление
+      // Минимальная цепочка для дисторшна
       this.sourceNode.connect(this.preFilterNode);
       this.preFilterNode.connect(this.distortionNode);
       this.distortionNode.connect(this.filterNode);
@@ -141,13 +152,13 @@ export class PitchDetector {
       this.sourceNode.disconnect();
       
       const rate = this.audioContext.sampleRate;
-      const length = rate * 2;
+      const length = rate * 0.8; // Уменьшаем длину реверберации для скорости
       const impulse = this.audioContext.createBuffer(2, length, rate);
       
       for (let channel = 0; channel < 2; channel++) {
         const impulseChannel = impulse.getChannelData(channel);
         for (let i = 0; i < length; i++) {
-          impulseChannel[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+          impulseChannel[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 1.5);
         }
       }
       
@@ -214,6 +225,7 @@ export class PitchDetector {
     this.isRunning = false;
   }
 
+  // Оптимизированный детектор частоты
   private detectPitch() {
     if (!this.isRunning || !this.analyserNode) return;
 
@@ -224,14 +236,15 @@ export class PitchDetector {
     const pitch = this.autoCorrelate(buffer, this.audioContext!.sampleRate);
     
     if (pitch > 0) {
-  const noteName = this.getNoteName(pitch);
-  // Возвращаем и частоту, и ноту
-  this.onPitchDetectedCallback(pitch, noteName);
-}
+      const noteName = this.getNoteName(pitch);
+      this.onPitchDetectedCallback(pitch, noteName);
+    }
 
+    // Используем requestAnimationFrame для плавности, но без лишней задержки
     requestAnimationFrame(() => this.detectPitch());
   }
 
+  // Улучшенная автокорреляция с меньшими вычислительными затратами
   private autoCorrelate(buffer: Float32Array, sampleRate: number): number {
     const size = buffer.length;
     let maxSamples = Math.floor(size / 2);
@@ -246,12 +259,16 @@ export class PitchDetector {
     
     if (rms < 0.01) return -1;
 
-    for (let offset = 20; offset < maxSamples; offset++) {
+    // Оптимизированный поиск: уменьшаем количество итераций для скорости
+    const step = 2; // Шаг для ускорения
+    for (let offset = 10; offset < maxSamples; offset += step) {
       let correlation = 0;
-      for (let i = 0; i < maxSamples; i++) {
+      // Используем меньше样本 для ускорения
+      const correlationSamples = Math.min(maxSamples, 512);
+      for (let i = 0; i < correlationSamples; i++) {
         correlation += Math.abs(buffer[i] - buffer[i + offset]);
       }
-      correlation = 1 - correlation / maxSamples;
+      correlation = 1 - correlation / correlationSamples;
       
       if (correlation > bestCorrelation) {
         bestCorrelation = correlation;
@@ -259,7 +276,7 @@ export class PitchDetector {
       }
     }
     
-    if (bestCorrelation > 0.3) {
+    if (bestCorrelation > 0.3 && bestOffset > 0) {
       return sampleRate / bestOffset;
     }
     

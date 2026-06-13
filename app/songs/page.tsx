@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Calendar, Clock, Eye, ChevronRight, Music2, TrendingUp, Sparkles, Guitar } from 'lucide-react';
+import { Calendar, Clock, Eye, Music2, TrendingUp, Guitar, Search } from 'lucide-react';
 import prisma from '@/lib/prisma';
 
 export default async function SongsPage() {
@@ -17,8 +17,8 @@ export default async function SongsPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero секция */}
-      <section className="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-gray-dark to-dark">
+      {/* Hero секция — адаптирована под светлую тему */}
+      <section className="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-gray-dark/30 via-gray-dark/20 to-dark/30">
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
@@ -30,13 +30,13 @@ export default async function SongsPage() {
             <span className="text-sm text-primary font-medium">Разборы песен</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-            <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+            <span className="text-text-primary">
               Играй любимые песни
             </span>
             <br />
             <span className="text-gradient">с нуля до профи</span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
             Аккорды, табы и подробные разборы популярных песен для гитары.
             Учись играть то, что действительно нравится!
           </p>
@@ -47,7 +47,7 @@ export default async function SongsPage() {
         <div className="text-center py-20">
           <div className="max-w-md mx-auto">
             <div className="text-6xl mb-4">🎵</div>
-            <p className="text-gray-400 mb-4">Пока нет разборов песен.</p>
+            <p className="text-text-secondary mb-4">Пока нет разборов песен.</p>
             <Link href="/admin/articles/new" className="btn-primary">
               + Добавить разбор
             </Link>
@@ -62,16 +62,16 @@ export default async function SongsPage() {
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
                     <TrendingUp className="w-6 h-6 text-primary" />
-                    Популярные разборы
+                    <span className="text-text-primary">Популярные разборы</span>
                   </h2>
-                  <p className="text-gray-500 text-sm">Самые просматриваемые песни</p>
+                  <p className="text-text-secondary text-sm">Самые просматриваемые песни</p>
                 </div>
               </div>
 
               <div className="grid md:grid-cols-3 gap-6">
                 {popularSongs.map((song, idx) => (
                   <Link key={song.id} href={`/songs/${song.slug}`} className="group">
-                    <div className="relative bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl overflow-hidden border border-gray-800 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
+                    <div className="relative bg-card rounded-xl overflow-hidden border border-border-color hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
                       <div className="relative h-48 overflow-hidden">
                         <img 
                           src={song.image} 
@@ -91,13 +91,13 @@ export default async function SongsPage() {
                             {song.subcategory}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+                        <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1 text-text-primary">
                           {song.title}
                         </h3>
-                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                        <p className="text-text-secondary text-sm mb-3 line-clamp-2">
                           {song.excerpt.substring(0, 80)}...
                         </p>
-                        <div className="flex justify-between items-center text-xs text-gray-500">
+                        <div className="flex justify-between items-center text-xs text-text-secondary">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {new Date(song.createdAt).toLocaleDateString('ru-RU')}
@@ -119,7 +119,7 @@ export default async function SongsPage() {
           <section className="py-8">
             <div className="max-w-6xl mx-auto px-4">
               <div className="flex flex-wrap justify-center gap-3">
-                <span className="text-sm text-gray-400">Жанры:</span>
+                <span className="text-sm text-text-secondary">Жанры:</span>
                 {subcategories.map((cat) => (
                   <button
                     key={cat}
@@ -139,9 +139,9 @@ export default async function SongsPage() {
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
                     <Guitar className="w-6 h-6 text-primary" />
-                    Все разборы
+                    <span className="text-text-primary">Все разборы</span>
                   </h2>
-                  <p className="text-gray-500 text-sm">{songs.length} песен в нашей библиотеке</p>
+                  <p className="text-text-secondary text-sm">{songs.length} песен в нашей библиотеке</p>
                 </div>
                 <div className="relative">
                   <input 
@@ -149,14 +149,14 @@ export default async function SongsPage() {
                     placeholder="Поиск песни..." 
                     className="input pl-10 w-64"
                   />
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {songs.map((song) => (
                   <Link key={song.id} href={`/songs/${song.slug}`} className="group">
-                    <div className="relative bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-xl overflow-hidden border border-gray-800 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
+                    <div className="relative bg-card rounded-xl overflow-hidden border border-border-color hover:border-primary/30 transition-all duration-300 hover:-translate-y-1">
                       <div className="relative h-48 overflow-hidden">
                         <img 
                           src={song.image} 
@@ -171,13 +171,13 @@ export default async function SongsPage() {
                         </div>
                       </div>
                       <div className="p-5">
-                        <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+                        <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1 text-text-primary">
                           {song.title}
                         </h3>
-                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                        <p className="text-text-secondary text-sm mb-3 line-clamp-2">
                           {song.excerpt.substring(0, 80)}...
                         </p>
-                        <div className="flex justify-between items-center text-xs text-gray-500">
+                        <div className="flex justify-between items-center text-xs text-text-secondary">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {new Date(song.createdAt).toLocaleDateString('ru-RU')}
@@ -203,6 +203,3 @@ export default async function SongsPage() {
     </div>
   );
 }
-
-// Импорт Search для поля поиска
-import { Search } from 'lucide-react';

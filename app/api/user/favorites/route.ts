@@ -18,7 +18,15 @@ export async function GET(request: Request) {
     
     const favorites = await prisma.favorite.findMany({
       where: { userId: decoded.userId },
-      include: { song: true },
+      include: {
+        song: {
+          select: {
+            title: true,
+            artist: true,
+            difficulty: true
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -61,7 +69,6 @@ export async function POST(request: Request) {
 
     const favorite = await prisma.favorite.create({
       data: {
-        id: `fav_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         userId: decoded.userId,
         songId: songId
       }
@@ -70,6 +77,41 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, favorite });
   } catch (error) {
     console.error('Ошибка добавления в избранное:', error);
+    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
+  }
+}
+
+// DELETE /api/user/favorites - удалить из избранного
+export async function DELETE(request: Request) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
+    
+    // Получаем songId из URL параметров
+    const { searchParams } = new URL(request.url);
+    const songId = searchParams.get('songId');
+
+    if (!token) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+    }
+
+    if (!songId) {
+      return NextResponse.json({ error: 'Не указан ID песни' }, { status: 400 });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+
+    // Удаляем запись из избранного
+    await prisma.favorite.deleteMany({
+      where: {
+        userId: decoded.userId,
+        songId: songId
+      }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Ошибка удаления из избранного:', error);
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }

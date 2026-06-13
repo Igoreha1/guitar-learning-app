@@ -4,30 +4,20 @@ import prisma from '@/lib/prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
-const verifyToken = (request: Request) => {
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  
-  if (!token) return null;
-  
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
-    return decoded;
-  } catch {
-    return null;
-  }
-};
-
-// GET - получить сохранённые статьи пользователя
+// GET /api/user/saved - получить сохранённые статьи
 export async function GET(request: Request) {
-  const user = verifyToken(request);
-  if (!user) {
-    return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-  }
-
   try {
-    const saved = await prisma.savedArticle.findMany({
-      where: { userId: user.id },
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
+
+    if (!token) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    
+    const savedArticles = await prisma.savedArticle.findMany({
+      where: { userId: decoded.userId },
       include: {
         article: {
           select: {
@@ -46,32 +36,36 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json({ saved });
+    console.log(`✅ Найдено ${savedArticles.length} сохранённых статей для пользователя ${decoded.userId}`);
+    return NextResponse.json({ saved: savedArticles });
   } catch (error) {
     console.error('Ошибка получения сохранённых статей:', error);
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }
 
-// POST - сохранить статью
+// POST /api/user/saved - сохранить статью
 export async function POST(request: Request) {
-  const user = verifyToken(request);
-  if (!user) {
-    return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-  }
-
   try {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
+
+    if (!token) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     const body = await request.json();
     const { articleId } = body;
 
     if (!articleId) {
-      return NextResponse.json({ error: 'ID статьи не указан' }, { status: 400 });
+      return NextResponse.json({ error: 'Не указан ID статьи' }, { status: 400 });
     }
 
     // Проверяем, не сохранена ли уже
     const existing = await prisma.savedArticle.findFirst({
       where: {
-        userId: user.id,
+        userId: decoded.userId,
         articleId: articleId
       }
     });
@@ -82,43 +76,47 @@ export async function POST(request: Request) {
 
     const saved = await prisma.savedArticle.create({
       data: {
-        userId: user.id,
+        id: `saved_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        userId: decoded.userId,
         articleId: articleId
       }
     });
 
-    return NextResponse.json({ saved, isSaved: true });
+    return NextResponse.json({ success: true, saved });
   } catch (error) {
     console.error('Ошибка сохранения статьи:', error);
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }
 
-// DELETE - удалить из сохранённых
+// DELETE /api/user/saved?articleId=xxx - удалить сохранённую статью
 export async function DELETE(request: Request) {
-  const user = verifyToken(request);
-  if (!user) {
-    return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-  }
-
   try {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
     const { searchParams } = new URL(request.url);
     const articleId = searchParams.get('articleId');
 
-    if (!articleId) {
-      return NextResponse.json({ error: 'ID статьи не указан' }, { status: 400 });
+    if (!token) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
+
+    if (!articleId) {
+      return NextResponse.json({ error: 'Не указан ID статьи' }, { status: 400 });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
 
     await prisma.savedArticle.deleteMany({
       where: {
-        userId: user.id,
+        userId: decoded.userId,
         articleId: articleId
       }
     });
 
-    return NextResponse.json({ success: true, isSaved: false });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Ошибка удаления статьи:', error);
+    console.error('Ошибка удаления сохранённой статьи:', error);
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }

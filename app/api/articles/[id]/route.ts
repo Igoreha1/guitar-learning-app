@@ -34,20 +34,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
     
     const article = await prisma.article.update({
-      where: { id: id },
+      where: { id },
       data: {
-        title,
-        category,
-        subcategory,
-        excerpt,
-        content,
-        image,
-        author,
-        readingTime,
-        tags: tags || [],
-        status: status || 'published',
-        showOnHomepage: showOnHomepage !== undefined ? showOnHomepage : false,
-        updatedAt: new Date()
+        title: body.title,
+        category: body.category,
+        subcategory: body.subcategory || '',
+        excerpt: body.excerpt,
+        content: body.content,
+        image: body.image,
+        author: body.author,
+        readingTime: body.readingTime,
+        tags: body.tags || [],
+        status: body.status,
+        showOnHomepage: body.showOnHomepage || false,
+        difficulty: body.difficulty || ''  // ← добавить
       }
     });
     
