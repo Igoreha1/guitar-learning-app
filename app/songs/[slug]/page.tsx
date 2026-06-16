@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, Clock, Eye, User, ArrowLeft, Play, Music2, Share2, ChevronRight, Guitar } from 'lucide-react';
+import { Calendar, Clock, Eye, User, ArrowLeft, Play, Music2, ChevronRight, Guitar } from 'lucide-react';
 import prisma from '@/lib/prisma';
+import SongActions from './SongActions';
 
 export default async function SongPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -34,58 +35,59 @@ export default async function SongPage({ params }: { params: Promise<{ slug: str
 
   return (
     <div className="min-h-screen">
-      {/* Hero секция — адаптирована под светлую тему */}
-      <section className="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-gray-dark/30 via-gray-dark/20 to-dark/30">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="relative z-10 max-w-5xl mx-auto px-4">
-          {/* Навигация */}
-          <div className="flex items-center gap-2 text-sm text-text-secondary mb-6">
-            <Link href="/" className="hover:text-primary transition-colors">Главная</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link href="/songs" className="hover:text-primary transition-colors">Разборы песен</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-text-primary">{article.title}</span>
-          </div>
+      {/* Hero секция */}
+<section className="relative overflow-hidden pt-20 pb-12">
+  {/* Анимированные лучи */}
+  <div className="absolute inset-0 opacity-30">
+    <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+    <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+  </div>
+  
+  <div className="relative z-10 max-w-5xl mx-auto px-4">
+    {/* Навигация */}
+    <div className="flex items-center gap-2 text-sm dark:text-gray-400 text-gray-500 mb-6">
+      <Link href="/" className="hover:text-primary transition-colors">Главная</Link>
+      <ChevronRight className="w-4 h-4" />
+      <Link href="/songs" className="hover:text-primary transition-colors">Разборы песен</Link>
+      <ChevronRight className="w-4 h-4" />
+      <span className="dark:text-white text-gray-900">{article.title}</span>
+    </div>
 
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="flex flex-wrap gap-2 justify-center mb-4">
-              <span className="badge">{article.subcategory}</span>
-              {tags.map((tag: string, index: number) => (
-                <span key={index} className="badge bg-gray-800 text-gray-400">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-            
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-text-primary">
-              {article.title}
-            </h1>
-            
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-text-secondary">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {new Date(article.createdAt).toLocaleDateString('ru-RU')}
-              </span>
-              <span className="flex items-center gap-1">
-                <User className="w-4 h-4" />
-                {article.author}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {article.readingTime} мин чтения
-              </span>
-              <span className="flex items-center gap-1">
-                <Eye className="w-4 h-4" />
-                {article.views} просмотров
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div className="max-w-3xl mx-auto text-center">
+      <div className="flex flex-wrap gap-2 justify-center mb-4">
+        <span className="badge">{article.subcategory}</span>
+        {tags.map((tag: string, index: number) => (
+          <span key={index} className="badge dark:bg-gray-800 dark:text-gray-400 bg-gray-100 text-gray-600">
+            #{tag}
+          </span>
+        ))}
+      </div>
+      
+      <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 dark:text-white text-gray-900">
+        {article.title}
+      </h1>
+      
+      <div className="flex flex-wrap justify-center gap-4 text-sm dark:text-gray-400 text-gray-500">
+        <span className="flex items-center gap-1">
+          <Calendar className="w-4 h-4" />
+          {new Date(article.createdAt).toLocaleDateString('ru-RU')}
+        </span>
+        <span className="flex items-center gap-1">
+          <User className="w-4 h-4" />
+          {article.author}
+        </span>
+        <span className="flex items-center gap-1">
+          <Clock className="w-4 h-4" />
+          {article.readingTime} мин чтения
+        </span>
+        <span className="flex items-center gap-1">
+          <Eye className="w-4 h-4" />
+          {article.views} просмотров
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Основное содержание */}
       <section className="py-12">
@@ -100,44 +102,77 @@ export default async function SongPage({ params }: { params: Promise<{ slug: str
           </div>
 
           {/* Контент */}
-          <div className="bg-card rounded-2xl p-6 md:p-8 border border-border-color">
-            <div 
-              className="prose prose-lg max-w-none
-                prose-headings:text-text-primary prose-headings:font-bold
-                prose-p:text-text-secondary prose-p:leading-relaxed
-                prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                prose-strong:text-text-primary prose-strong:font-semibold
-                prose-code:text-primary prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded
-                prose-pre:bg-gray-100 dark:prose-pre:bg-gray-900 prose-pre:border prose-pre:border-border-color
-                prose-blockquote:border-l-primary prose-blockquote:text-text-secondary
-                prose-li:text-text-secondary
-                prose-hr:border-border-color
-                [&_div[style*='color: #e4e4e7']]:text-text-secondary
-                [&_div[style*='color: #e4e4e7']]:dark:text-text-secondary
-                [&_div[style*='color: #e4e4e7']]:light:text-text-secondary"
-              dangerouslySetInnerHTML={{ __html: article.content }}
-            />
-          </div>
+<div className="bg-card rounded-2xl p-6 md:p-8 border border-border-color">
+  <div 
+    className="prose prose-lg max-w-none
+      prose-headings:text-text-primary prose-headings:font-bold
+      prose-p:text-text-secondary prose-p:leading-relaxed
+      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+      prose-strong:text-text-primary prose-strong:font-semibold
+      prose-code:text-primary prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded
+      prose-pre:bg-gray-100 dark:prose-pre:bg-gray-900 prose-pre:border prose-pre:border-border-color
+      prose-blockquote:border-l-primary prose-blockquote:text-text-secondary
+      prose-li:text-text-secondary
+      prose-hr:border-border-color
+      
+      /* Принудительный переопределение стиля для текста песен */
+      [&_div[style*='color: #e4e4e7']] {
+        color: #1a1a2e !important;
+      }
+      
+      [&_div[style*='color: #e4e4e7']]:dark {
+        color: #e4e4e7 !important;
+      }
+      
+      [&_div[style*='color: #e4e4e7']] .chord-cell {
+        color: #ef4444 !important;
+      }
+      
+      [&_div[style*='color: #e4e4e7']]:dark .chord-cell {
+        color: #ef4444 !important;
+      }
+      
+      /* Для текста в строках */
+      [&_div.text-row] {
+        color: #1a1a2e !important;
+      }
+      
+      [&_div.text-row]:dark {
+        color: #e4e4e7 !important;
+      }
+      
+      [&_div.chord-row] {
+        color: #1a1a2e !important;
+      }
+      
+      [&_div.chord-row]:dark {
+        color: #e4e4e7 !important;
+      }
+      
+      [&_div.chord-row] .chord-cell {
+        color: #ef4444 !important;
+      }
+      
+      [&_div.chord-row]:dark .chord-cell {
+        color: #ef4444 !important;
+      }
+      
+      [&_td] {
+        color: #1a1a2e !important;
+      }
+      
+      [&_td]:dark {
+        color: #e4e4e7 !important;
+      }"
+    dangerouslySetInnerHTML={{ __html: article.content }}
+  />
+</div>
 
-          {/* Кнопки действий */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
-            <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 bg-card rounded-lg text-text-secondary hover:text-primary transition-colors border border-border-color">
-                <Share2 className="w-4 h-4" />
-                Поделиться
-              </button>
-            </div>
-            <div className="flex gap-3">
-              <Link href="/songs" className="flex items-center gap-2 px-6 py-3 bg-card rounded-lg text-text-secondary hover:bg-card-hover transition-colors border border-border-color">
-                <ArrowLeft className="w-4 h-4" />
-                Все разборы
-              </Link>
-              <Link href={`/game?play=${article.slug}`} className="flex items-center gap-2 px-6 py-3 btn-primary">
-                <Play className="w-4 h-4" />
-                Играть в тренажёре
-              </Link>
-            </div>
-          </div>
+          {/* Кнопки действий - используем клиентский компонент */}
+          <SongActions 
+            articleId={article.id} 
+            articleTitle={article.title}
+          />
         </div>
       </section>
 

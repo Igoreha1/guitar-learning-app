@@ -17,31 +17,32 @@ export default async function SongsPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero секция — адаптирована под светлую тему */}
-      <section className="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-gray-dark/30 via-gray-dark/20 to-dark/30">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
-          <div className="inline-flex items-center gap-2 bg-primary/10 backdrop-blur-sm px-4 py-2 rounded-full border border-primary/30 mb-6">
-            <Music2 className="w-4 h-4 text-primary" />
-            <span className="text-sm text-primary font-medium">Разборы песен</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-            <span className="text-text-primary">
-              Играй любимые песни
-            </span>
-            <br />
-            <span className="text-gradient">с нуля до профи</span>
-          </h1>
-          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-            Аккорды, табы и подробные разборы популярных песен для гитары.
-            Учись играть то, что действительно нравится!
-          </p>
-        </div>
-      </section>
+      {/* Hero секция */}
+<section className="relative overflow-hidden pt-20 pb-12">
+  {/* Анимированные лучи */}
+  <div className="absolute inset-0 opacity-30">
+    <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+    <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+  </div>
+  
+  <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
+    <div className="inline-flex items-center gap-2 bg-primary/10 backdrop-blur-sm px-4 py-2 rounded-full border border-primary/30 mb-6">
+      <Music2 className="w-4 h-4 text-primary" />
+      <span className="text-sm text-primary font-medium">Разборы песен</span>
+    </div>
+    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+      <span className="dark:text-white text-gray-900">
+        Играй любимые песни
+      </span>
+      <br />
+      <span className="text-gradient">с нуля до профи</span>
+    </h1>
+    <p className="dark:text-gray-300 text-gray-700 text-lg max-w-2xl mx-auto">
+      Аккорды, табы и подробные разборы популярных песен для гитары.
+      Учись играть то, что действительно нравится!
+    </p>
+  </div>
+</section>
 
       {songs.length === 0 ? (
         <div className="text-center py-20">
@@ -114,24 +115,7 @@ export default async function SongsPage() {
               </div>
             </div>
           </section>
-
-          {/* Категории */}
-          <section className="py-8">
-            <div className="max-w-6xl mx-auto px-4">
-              <div className="flex flex-wrap justify-center gap-3">
-                <span className="text-sm text-text-secondary">Жанры:</span>
-                {subcategories.map((cat) => (
-                  <button
-                    key={cat}
-                    className="px-4 py-1.5 bg-gray-800 rounded-full text-sm text-gray-400 hover:bg-primary/20 hover:text-primary transition-all duration-200"
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-
+          
           {/* Все разборы */}
           <section className="py-12">
             <div className="max-w-6xl mx-auto px-4">

@@ -1,27 +1,55 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight, Home, FileText, Shield, AlertCircle, Mail, CheckCircle } from "lucide-react";
 
 export default function TermsPage() {
+  const [isDark, setIsDark] = useState(true);
   const lastUpdated = "28 мая 2026 г.";
 
+  // Следим за изменением темы
+  useEffect(() => {
+    const checkTheme = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setIsDark(isDarkMode);
+    };
+    
+    checkTheme();
+    
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  // Стили в зависимости от темы
+  const styles = {
+    bgPage: isDark ? 'bg-gradient-to-br from-dark via-gray-dark to-darker' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100',
+    textPrimary: isDark ? 'text-white' : 'text-gray-900',
+    textSecondary: isDark ? 'text-gray-400' : 'text-gray-600',
+    textMuted: isDark ? 'text-gray-500' : 'text-gray-400',
+    cardBg: isDark ? 'bg-gray-800/30 backdrop-blur-sm border-gray-700' : 'bg-white/80 backdrop-blur-sm border-gray-200',
+    cardBgInner: isDark ? 'bg-gray-800/50' : 'bg-gray-50',
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker">
+    <div className={`min-h-screen ${styles.bgPage}`}>
       <section className="relative overflow-hidden pt-20 pb-12">
+        {/* Анимированные лучи */}
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
         
         <div className="relative z-10 max-w-6xl mx-auto px-4">
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+          <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} mb-6`}>
             <Link href="/" className="hover:text-primary transition-colors flex items-center gap-1">
               <Home className="w-4 h-4" />
               Главная
             </Link>
             <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-300">Пользовательское соглашение</span>
+            <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Пользовательское соглашение</span>
           </div>
 
           <div className="text-center">
@@ -30,14 +58,14 @@ export default function TermsPage() {
               <span className="text-sm text-primary font-medium">Правовая информация</span>
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              <span className={`bg-gradient-to-r ${isDark ? 'from-white to-gray-400' : 'from-gray-900 to-gray-600'} bg-clip-text text-transparent`}>
                 Пользовательское соглашение
               </span>
             </h1>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+            <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'} text-lg max-w-2xl mx-auto`}>
               Правила использования сервиса ГитарСинхро
             </p>
-            <p className="text-gray-500 text-sm mt-3">
+            <p className={`${isDark ? 'text-gray-500' : 'text-gray-400'} text-sm mt-3`}>
               Последнее обновление: {lastUpdated}
             </p>
           </div>
@@ -46,9 +74,9 @@ export default function TermsPage() {
 
       <section className="py-8 pb-20">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-6">
-            <div className="space-y-6 text-gray-300 leading-relaxed">
-              <div className="bg-primary/10 rounded-xl p-4 border border-primary/20">
+          <div className={`rounded-2xl border p-6 ${styles.cardBg}`}>
+            <div className={`space-y-6 ${isDark ? 'text-gray-300' : 'text-gray-700'} leading-relaxed`}>
+              <div className={`${isDark ? 'bg-primary/10 border-primary/20' : 'bg-primary/5 border-primary/20'} rounded-xl p-4 border`}>
                 <p className="text-sm">
                   ⚠️ Используя веб-приложение <strong className="text-primary">ГитарСинхро</strong>, 
                   вы соглашаетесь с условиями настоящего Пользовательского соглашения. 
@@ -57,8 +85,8 @@ export default function TermsPage() {
               </div>
 
               <div>
-                <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                  <span className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary">1</span>
+                <h2 className={`text-xl font-bold ${styles.textPrimary} mb-3 flex items-center gap-2`}>
+                  <span className={`w-8 h-8 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-lg flex items-center justify-center text-primary`}>1</span>
                   Общие положения
                 </h2>
                 <p>
@@ -72,8 +100,8 @@ export default function TermsPage() {
               </div>
 
               <div>
-                <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                  <span className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary">2</span>
+                <h2 className={`text-xl font-bold ${styles.textPrimary} mb-3 flex items-center gap-2`}>
+                  <span className={`w-8 h-8 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-lg flex items-center justify-center text-primary`}>2</span>
                   Права и обязанности пользователя
                 </h2>
                 <ul className="space-y-2 pl-5 list-disc">
@@ -85,8 +113,8 @@ export default function TermsPage() {
               </div>
 
               <div>
-                <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                  <span className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary">3</span>
+                <h2 className={`text-xl font-bold ${styles.textPrimary} mb-3 flex items-center gap-2`}>
+                  <span className={`w-8 h-8 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-lg flex items-center justify-center text-primary`}>3</span>
                   Интеллектуальная собственность
                 </h2>
                 <p>
@@ -97,8 +125,8 @@ export default function TermsPage() {
               </div>
 
               <div>
-                <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                  <span className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary">4</span>
+                <h2 className={`text-xl font-bold ${styles.textPrimary} mb-3 flex items-center gap-2`}>
+                  <span className={`w-8 h-8 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-lg flex items-center justify-center text-primary`}>4</span>
                   Ограничение ответственности
                 </h2>
                 <p>
@@ -109,8 +137,8 @@ export default function TermsPage() {
               </div>
 
               <div>
-                <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                  <span className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary">5</span>
+                <h2 className={`text-xl font-bold ${styles.textPrimary} mb-3 flex items-center gap-2`}>
+                  <span className={`w-8 h-8 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-lg flex items-center justify-center text-primary`}>5</span>
                   Изменение условий
                 </h2>
                 <p>
@@ -120,18 +148,18 @@ export default function TermsPage() {
               </div>
 
               <div>
-                <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-                  <span className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-primary">6</span>
+                <h2 className={`text-xl font-bold ${styles.textPrimary} mb-3 flex items-center gap-2`}>
+                  <span className={`w-8 h-8 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-lg flex items-center justify-center text-primary`}>6</span>
                   Контакты
                 </h2>
-                <div className="bg-gray-800/50 rounded-xl p-4 space-y-2">
+                <div className={`${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-xl p-4 space-y-2`}>
                   <p>📧 <strong>Email:</strong> <a href="mailto:guitarsync@yandex.ru" className="text-primary hover:underline">guitarsync@yandex.ru</a></p>
                   <p>📞 <strong>Телефон:</strong> <a href="tel:+79991234567" className="text-primary hover:underline">+7 (924) 432 33 04</a></p>
                 </div>
               </div>
 
-              <div className="border-t border-gray-700 pt-6 mt-6 text-center">
-                <p className="text-gray-500 text-sm">
+              <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-6 mt-6 text-center`}>
+                <p className={`${isDark ? 'text-gray-500' : 'text-gray-400'} text-sm`}>
                   © {new Date().getFullYear()} ГитарСинхро. Все права защищены.
                 </p>
               </div>

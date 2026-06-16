@@ -108,58 +108,58 @@ export default async function LessonsPage({ searchParams }: LessonsPageProps) {
 
   return (
     <div className="min-h-screen">
-      {/* Hero секция — адаптирована под светлую тему */}
-      <section className="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-gray-dark/30 via-gray-dark/20 to-dark/30">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
-          {levelFilter !== 'all' && (
-            <Link 
-              href="/lessons" 
-              className="inline-flex items-center gap-2 text-text-secondary hover:text-primary transition-colors mb-4"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Назад ко всем урокам
-            </Link>
-          )}
+      {/* Hero секция */}
+<section className="relative overflow-hidden pt-20 pb-12">
+  {/* Анимированные лучи */}
+  <div className="absolute inset-0 opacity-30">
+    <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+    <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+  </div>
+  
+  <div className="max-w-6xl mx-auto px-4 text-center relative z-10">
+    {levelFilter !== 'all' && (
+      <Link 
+        href="/lessons" 
+        className="inline-flex items-center gap-2 dark:text-gray-400 text-gray-500 hover:text-primary transition-colors mb-4"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Назад ко всем урокам
+      </Link>
+    )}
 
-          <div className="inline-flex items-center gap-2 bg-primary/10 backdrop-blur-sm px-4 py-2 rounded-full border border-primary/30 mb-6">
-            <BookOpen className="w-4 h-4 text-primary" />
-            <span className="text-sm text-primary font-medium">Пошаговое обучение</span>
-          </div>
-          
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-            <span className="text-text-primary">
-              {levelFilter === 'all' ? 'Уроки игры на гитаре' : `Уроки для ${getFilterName()}`}
-            </span>
-            <br />
-            <span className="text-gradient">
-              {levelFilter === 'all' ? 'от новичка до профи' : `${getFilterIcon()} ${getFilterName()} уровень`}
-            </span>
-          </h1>
-          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-            {levelFilter === 'all' 
-              ? 'Пошаговые уроки с подробными объяснениями, упражнениями и практическими заданиями. Начни играть уже сегодня!'
-              : `${lessons.length} уроков для ${getFilterName()} уровня. Выбери подходящий и начни обучение!`
-            }
-          </p>
-          
-          <div className="max-w-md mx-auto mt-8">
-            <div className="relative">
-              <input 
-                type="text" 
-                placeholder="Поиск уроков..." 
-                className="input pl-10 py-3"
-              />
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
-            </div>
-          </div>
-        </div>
-      </section>
-
+    <div className="inline-flex items-center gap-2 bg-primary/10 backdrop-blur-sm px-4 py-2 rounded-full border border-primary/30 mb-6">
+      <BookOpen className="w-4 h-4 text-primary" />
+      <span className="text-sm text-primary font-medium">Пошаговое обучение</span>
+    </div>
+    
+    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+      <span className="dark:text-white text-gray-900">
+        {levelFilter === 'all' ? 'Уроки игры на гитаре' : `Уроки для ${getFilterName()}`}
+      </span>
+      <br />
+      <span className="text-gradient">
+        {levelFilter === 'all' ? 'от новичка до профи' : `${getFilterIcon()} ${getFilterName()} уровень`}
+      </span>
+    </h1>
+    <p className="dark:text-gray-300 text-gray-700 text-lg max-w-2xl mx-auto">
+      {levelFilter === 'all' 
+        ? 'Пошаговые уроки с подробными объяснениями, упражнениями и практическими заданиями. Начни играть уже сегодня!'
+        : `${lessons.length} уроков для ${getFilterName()} уровня. Выбери подходящий и начни обучение!`
+      }
+    </p>
+    
+    <div className="max-w-md mx-auto mt-8">
+  <div className="relative">
+    <input 
+      type="text" 
+      placeholder="Поиск уроков..." 
+      className="w-full pl-10 pr-4 py-3 rounded-xl dark:bg-light-800/50 bg-white border dark:border-gray-700 border-gray-300 text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:border-primary transition-colors"
+    />
+    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 dark:text-gray-500 text-gray-400" />
+  </div>
+</div>
+  </div>
+</section>
       {allLessons.length === 0 ? (
         <div className="text-center py-20">
           <div className="max-w-md mx-auto">

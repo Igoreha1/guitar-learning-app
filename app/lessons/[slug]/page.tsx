@@ -37,58 +37,59 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
   return (
     <div className="min-h-screen">
-      {/* Hero секция урока — адаптирована под светлую тему */}
-      <section className="relative overflow-hidden pt-20 pb-12 bg-gradient-to-br from-gray-dark/30 via-gray-dark/20 to-dark/30">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="relative z-10 max-w-5xl mx-auto px-4">
-          {/* Навигация */}
-          <div className="flex items-center gap-2 text-sm text-text-secondary mb-6">
-            <Link href="/" className="hover:text-primary transition-colors">Главная</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link href="/lessons" className="hover:text-primary transition-colors">Уроки</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-text-primary">{article.title}</span>
-          </div>
+      {/* Hero секция урока */}
+<section className="relative overflow-hidden pt-20 pb-12">
+  {/* Анимированные лучи */}
+  <div className="absolute inset-0 opacity-30">
+    <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+    <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+  </div>
+  
+  <div className="relative z-10 max-w-5xl mx-auto px-4">
+    {/* Навигация */}
+    <div className="flex items-center gap-2 text-sm dark:text-gray-400 text-gray-500 mb-6">
+      <Link href="/" className="hover:text-primary transition-colors">Главная</Link>
+      <ChevronRight className="w-4 h-4" />
+      <Link href="/lessons" className="hover:text-primary transition-colors">Уроки</Link>
+      <ChevronRight className="w-4 h-4" />
+      <span className="dark:text-white text-gray-900">{article.title}</span>
+    </div>
 
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="flex flex-wrap gap-2 justify-center mb-4">
-              <span className="badge">{article.subcategory}</span>
-              {tags.map((tag: string, index: number) => (
-                <span key={index} className="badge bg-gray-800 text-gray-400">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-            
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-text-primary">
-              {article.title}
-            </h1>
-            
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-text-secondary">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {new Date(article.createdAt).toLocaleDateString('ru-RU')}
-              </span>
-              <span className="flex items-center gap-1">
-                <User className="w-4 h-4" />
-                {article.author}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {article.readingTime} мин чтения
-              </span>
-              <span className="flex items-center gap-1">
-                <Eye className="w-4 h-4" />
-                {article.views} просмотров
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div className="max-w-3xl mx-auto text-center">
+      <div className="flex flex-wrap gap-2 justify-center mb-4">
+        <span className="badge">{article.subcategory}</span>
+        {tags.map((tag: string, index: number) => (
+          <span key={index} className="badge dark:bg-gray-800 dark:text-gray-400 bg-gray-100 text-gray-600">
+            #{tag}
+          </span>
+        ))}
+      </div>
+      
+      <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 dark:text-white text-gray-900">
+        {article.title}
+      </h1>
+      
+      <div className="flex flex-wrap justify-center gap-4 text-sm dark:text-gray-400 text-gray-500">
+        <span className="flex items-center gap-1">
+          <Calendar className="w-4 h-4" />
+          {new Date(article.createdAt).toLocaleDateString('ru-RU')}
+        </span>
+        <span className="flex items-center gap-1">
+          <User className="w-4 h-4" />
+          {article.author}
+        </span>
+        <span className="flex items-center gap-1">
+          <Clock className="w-4 h-4" />
+          {article.readingTime} мин чтения
+        </span>
+        <span className="flex items-center gap-1">
+          <Eye className="w-4 h-4" />
+          {article.views} просмотров
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Основное содержание */}
       <section className="py-12">

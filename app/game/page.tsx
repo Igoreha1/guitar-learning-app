@@ -28,6 +28,22 @@ export default function GamePage() {
   const [showNewRecord, setShowNewRecord] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+
+  // Следим за изменением темы
+  useEffect(() => {
+    const checkTheme = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setIsDark(isDarkMode);
+    };
+    
+    checkTheme();
+    
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
 
   // Загружаем песни из API
   useEffect(() => {
@@ -145,69 +161,56 @@ export default function GamePage() {
   };
 
   const toggleFavorite = async () => {
-  const token = localStorage.getItem('token');
-  
-  // Проверка авторизации
-  if (!token) {
-    setIsAuthModalOpen(true);
-    return;
-  }
-  
-  // Проверка, что выбранная песня существует
-  if (!selectedSong || !selectedSong.id) {
-    console.error('Песня не выбрана или отсутствует ID');
-    return;
-  }
-  
-  console.log('Toggling favorite for song:', selectedSong.id, 'Current isFavorite:', isFavorite);
-  
-  try {
-    if (isFavorite) {
-      // Удаляем из избранного
-      const res = await fetch(`/api/user/favorites?songId=${selectedSong.id}`, {
-        method: 'DELETE',
-        headers: { 
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      console.log('DELETE response status:', res.status);
-      
-      if (res.ok) {
-        setIsFavorite(false);
-        setFavoritesList(prev => prev.filter(id => id !== selectedSong.id));
-        console.log('Успешно удалено из избранного');
-      } else {
-        const data = await res.json();
-        console.error('Ошибка удаления:', data.error);
-      }
-    } else {
-      // Добавляем в избранное
-      const res = await fetch('/api/user/favorites', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ songId: selectedSong.id })
-      });
-      
-      console.log('POST response status:', res.status);
-      
-      if (res.ok) {
-        const data = await res.json();
-        setIsFavorite(true);
-        setFavoritesList(prev => [...prev, selectedSong.id]);
-        console.log('Успешно добавлено в избранное');
-      } else {
-        const data = await res.json();
-        console.error('Ошибка добавления:', data.error);
-      }
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      setIsAuthModalOpen(true);
+      return;
     }
-  } catch (error) {
-    console.error('Ошибка при работе с избранным:', error);
-  }
-};
+    
+    if (!selectedSong || !selectedSong.id) {
+      console.error('Песня не выбрана или отсутствует ID');
+      return;
+    }
+    
+    try {
+      if (isFavorite) {
+        const res = await fetch(`/api/user/favorites?songId=${selectedSong.id}`, {
+          method: 'DELETE',
+          headers: { 
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (res.ok) {
+          setIsFavorite(false);
+          setFavoritesList(prev => prev.filter(id => id !== selectedSong.id));
+        } else {
+          const data = await res.json();
+          console.error('Ошибка удаления:', data.error);
+        }
+      } else {
+        const res = await fetch('/api/user/favorites', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ songId: selectedSong.id })
+        });
+        
+        if (res.ok) {
+          setIsFavorite(true);
+          setFavoritesList(prev => [...prev, selectedSong.id]);
+        } else {
+          const data = await res.json();
+          console.error('Ошибка добавления:', data.error);
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка при работе с избранным:', error);
+    }
+  };
 
   // Фильтрация песен
   const filteredSongs = songs.filter(song => {
@@ -224,12 +227,24 @@ export default function GamePage() {
     hard: { label: "Профи", icon: "🔥", color: "from-red-500 to-red-600", bg: "bg-red-500/10" }
   };
 
+  // Стили в зависимости от темы
+  const styles = {
+    bgPage: isDark ? 'bg-gradient-to-br from-dark via-gray-dark to-darker' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100',
+    textPrimary: isDark ? 'text-white' : 'text-gray-800',
+    textSecondary: isDark ? 'text-gray-400' : 'text-gray-600',
+    textMuted: isDark ? 'text-gray-500' : 'text-gray-400',
+    cardBg: isDark ? 'bg-gray-800/30' : 'bg-white/80',
+    cardBorder: isDark ? 'border-gray-700' : 'border-gray-200',
+    inputBg: isDark ? 'bg-gray-800/50 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-800',
+    badge: isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600',
+  };
+
   if (loading || !authChecked) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker flex items-center justify-center">
+      <div className={`min-h-screen ${styles.bgPage} flex items-center justify-center`}>
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Загрузка...</p>
+          <p className={styles.textSecondary}>Загрузка...</p>
         </div>
       </div>
     );
@@ -237,7 +252,7 @@ export default function GamePage() {
 
   if (gameStarted && selectedSong) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker">
+      <div className={`min-h-screen ${styles.bgPage}`}>
         {/* Уведомление о новом рекорде */}
         {showNewRecord && (
           <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
@@ -250,23 +265,23 @@ export default function GamePage() {
         )}
 
         {/* Header */}
-        <div className="bg-dark/80 backdrop-blur-md border-b border-primary/20 sticky top-0 z-10">
+        <div className={`${isDark ? 'bg-dark/80 border-primary/20' : 'bg-white/80 border-gray-200'} backdrop-blur-md border-b sticky top-0 z-10`}>
           <div className="max-w-7xl mx-auto px-4 py-3">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <button
                   onClick={backToMenu}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg hover:bg-gray-700 transition text-gray-300 text-sm"
+                  className={`flex items-center gap-2 px-3 py-1.5 ${isDark ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'} rounded-lg transition text-sm`}
                 >
                   ← Назад
                 </button>
                 <div>
-                  <h2 className="text-lg font-bold text-white">{selectedSong.title}</h2>
-                  <p className="text-xs text-gray-400">{selectedSong.artist} • {selectedSong.bpm} BPM</p>
+                  <h2 className={`text-lg font-bold ${styles.textPrimary}`}>{selectedSong.title}</h2>
+                  <p className={`text-xs ${styles.textMuted}`}>{selectedSong.artist} • {selectedSong.bpm} BPM</p>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs text-gray-400">СЧЁТ</div>
+                <div className={`text-xs ${styles.textMuted}`}>СЧЁТ</div>
                 <div className="text-3xl font-bold text-primary">{score}</div>
               </div>
             </div>
@@ -287,9 +302,9 @@ export default function GamePage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker">
+      <div className={`min-h-screen ${styles.bgPage}`}>
         {/* Hero секция */}
-        <section className="relative overflow-hidden pt-12 pb-8">
+        <section className={`relative overflow-hidden pt-12 pb-8 ${isDark ? '' : 'bg-white'}`}>
           <div className="absolute inset-0 opacity-30">
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
             <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000" />
@@ -298,28 +313,28 @@ export default function GamePage() {
           <div className="relative z-10 max-w-7xl mx-auto px-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
               <div>
-                <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
                   <Link href="/" className="hover:text-primary transition-colors flex items-center gap-1">
                     <Home className="w-4 h-4" />
                     Главная
                   </Link>
                   <ChevronRight className="w-4 h-4" />
-                  <span className="text-gray-300">Игра</span>
+                  <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Игра</span>
                 </div>
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-                  <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                  <span className={`bg-gradient-to-r ${isDark ? 'from-white to-gray-400' : 'from-gray-900 to-gray-600'} bg-clip-text text-transparent`}>
                     Игровой тренажёр
                   </span>
                   <br />
                   <span className="text-gradient">для гитары</span>
                 </h1>
-                <p className="text-gray-400 mt-2 max-w-lg">
+                <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'} mt-2 max-w-lg`}>
                   Играй в реальном времени, используя микрофон. Следуй за нотами и набирай очки!
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="bg-gray-800/50 rounded-full px-4 py-2 border border-gray-700">
-                  <span className="text-sm text-gray-400">🎸 Доступно песен</span>
+                <div className={`${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-100 border-gray-200'} rounded-full px-4 py-2 border`}>
+                  <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>🎸 Доступно песен</span>
                   <span className="text-2xl font-bold text-primary ml-2">{filteredSongs.length}</span>
                 </div>
                 {!user && (
@@ -337,16 +352,16 @@ export default function GamePage() {
             {/* Поиск и фильтры */}
             <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                 <input
                   type="text"
                   placeholder="Поиск песни или исполнителя..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-colors"
+                  className={`w-full pl-10 pr-4 py-2 rounded-xl ${styles.inputBg} focus:outline-none focus:border-primary transition-colors`}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {["all", "easy", "medium", "hard"].map((diff) => (
                   <button
                     key={diff}
@@ -357,7 +372,7 @@ export default function GamePage() {
                           : diff === "medium" ? "bg-yellow-600 text-white"
                           : diff === "hard" ? "bg-red-600 text-white"
                           : "bg-primary text-white"
-                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                        : isDark ? "bg-gray-800 text-gray-400 hover:bg-gray-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
                     {diff === "all" ? "Все" : diff === "easy" ? "🌱 Новичок" : diff === "medium" ? "⭐ Любитель" : "🔥 Профи"}
@@ -368,7 +383,7 @@ export default function GamePage() {
                   className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-1 ${
                     showFavoritesOnly
                       ? "bg-primary text-white"
-                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                      : isDark ? "bg-gray-800 text-gray-400 hover:bg-gray-700" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
                   <Heart className={`w-4 h-4 ${showFavoritesOnly ? "fill-white" : ""}`} />
@@ -382,14 +397,14 @@ export default function GamePage() {
         {/* Баннер для неавторизованных пользователей */}
         {!user && (
           <div className="max-w-7xl mx-auto px-4 mb-6">
-            <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20 flex items-center justify-between flex-wrap gap-4">
+            <div className={`${isDark ? 'bg-primary/10 border-primary/20' : 'bg-primary/5 border-primary/20'} rounded-xl p-4 border flex items-center justify-between flex-wrap gap-4`}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                <div className={`w-10 h-10 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-full flex items-center justify-center`}>
                   <LogIn className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-white font-medium">Для игры необходима авторизация</p>
-                  <p className="text-sm text-gray-400">Войдите или зарегистрируйтесь, чтобы играть и отслеживать прогресс</p>
+                  <p className={`font-medium ${styles.textPrimary}`}>Для игры необходима авторизация</p>
+                  <p className={`text-sm ${styles.textMuted}`}>Войдите или зарегистрируйтесь, чтобы играть и отслеживать прогресс</p>
                 </div>
               </div>
               <button
@@ -407,9 +422,9 @@ export default function GamePage() {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Левая колонка - список песен */}
             <div className="lg:w-80 flex-shrink-0">
-              <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden sticky top-24">
-                <div className="p-4 border-b border-gray-700">
-                  <h2 className="text-white font-bold flex items-center gap-2">
+              <div className={`${styles.cardBg} backdrop-blur-sm rounded-xl border ${styles.cardBorder} overflow-hidden sticky top-24`}>
+                <div className={`p-4 border-b ${styles.cardBorder}`}>
+                  <h2 className={`font-bold flex items-center gap-2 ${styles.textPrimary}`}>
                     <Music className="w-5 h-5 text-primary" />
                     БИБЛИОТЕКА ПЕСЕН
                   </h2>
@@ -418,8 +433,8 @@ export default function GamePage() {
                 <div className="h-[500px] overflow-y-auto custom-scrollbar">
                   {filteredSongs.length === 0 ? (
                     <div className="p-8 text-center">
-                      <Music className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                      <p className="text-gray-500 text-sm">Песен не найдено</p>
+                      <Music className={`w-12 h-12 ${isDark ? 'text-gray-600' : 'text-gray-300'} mx-auto mb-3`} />
+                      <p className={styles.textMuted}>Песен не найдено</p>
                     </div>
                   ) : (
                     filteredSongs.map((song) => (
@@ -440,15 +455,15 @@ export default function GamePage() {
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <div className="font-bold text-white flex items-center gap-2">
+                            <div className={`font-bold ${styles.textPrimary} flex items-center gap-2`}>
                               {song.title}
                               {favoritesList.includes(song.id) && (
                                 <Heart className="w-3 h-3 fill-primary text-primary" />
                               )}
                             </div>
-                            <div className="text-sm text-gray-400">{song.artist}</div>
+                            <div className={`text-sm ${styles.textMuted}`}>{song.artist}</div>
                             <div className="flex items-center gap-3 mt-2 text-xs">
-                              <span className="text-gray-500">{song.bpm} BPM</span>
+                              <span className={styles.textMuted}>{song.bpm} BPM</span>
                               <span className={`px-2 py-0.5 rounded ${
                                 song.difficulty === 'easy' 
                                   ? 'bg-green-500/20 text-green-400' 
@@ -476,10 +491,10 @@ export default function GamePage() {
             {/* Правая колонка - детали песни */}
             <div className="flex-1">
               {selectedSong ? (
-                <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-700 overflow-hidden">
-                  <div className="relative h-48 bg-gradient-to-r from-primary/20 to-purple-500/20 flex items-center justify-center">
+                <div className={`${isDark ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/50' : 'bg-white'} backdrop-blur-sm rounded-xl border ${styles.cardBorder} overflow-hidden`}>
+                  <div className={`relative h-48 ${isDark ? 'bg-gradient-to-r from-primary/20 to-purple-500/20' : 'bg-gradient-to-r from-primary/10 to-purple-500/10'}`}>
                     <div className="absolute inset-0 bg-black/40" />
-                    <div className="relative z-10 text-center">
+                    <div className="relative z-10 text-center flex flex-col items-center justify-center h-full">
                       <div className="text-6xl mb-2">🎸</div>
                       <h2 className="text-2xl font-bold text-white">{selectedSong.title}</h2>
                       <p className="text-gray-300">{selectedSong.artist}</p>
@@ -489,7 +504,7 @@ export default function GamePage() {
                       className={`absolute top-4 right-4 p-2 rounded-lg transition ${
                         isFavorite 
                           ? 'bg-primary/20 text-primary border border-primary/50' 
-                          : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700'
+                          : isDark ? 'bg-gray-800/50 text-gray-400 hover:bg-gray-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                       }`}
                       title={!user ? 'Войдите в аккаунт' : isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
                       disabled={!user}
@@ -500,16 +515,16 @@ export default function GamePage() {
 
                   <div className="p-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                      <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                        <div className="text-xs text-gray-400 mb-1">ТЕМП</div>
-                        <div className="text-xl font-bold text-white">{selectedSong.bpm} BPM</div>
+                      <div className={`${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-lg p-3 text-center`}>
+                        <div className={`text-xs ${styles.textMuted} mb-1`}>ТЕМП</div>
+                        <div className={`text-xl font-bold ${styles.textPrimary}`}>{selectedSong.bpm} BPM</div>
                       </div>
-                      <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                        <div className="text-xs text-gray-400 mb-1">ДЛИТЕЛЬНОСТЬ</div>
-                        <div className="text-xl font-bold text-white">{Math.floor(selectedSong.duration)} сек</div>
+                      <div className={`${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-lg p-3 text-center`}>
+                        <div className={`text-xs ${styles.textMuted} mb-1`}>ДЛИТЕЛЬНОСТЬ</div>
+                        <div className={`text-xl font-bold ${styles.textPrimary}`}>{Math.floor(selectedSong.duration)} сек</div>
                       </div>
-                      <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                        <div className="text-xs text-gray-400 mb-1">СЛОЖНОСТЬ</div>
+                      <div className={`${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-lg p-3 text-center`}>
+                        <div className={`text-xs ${styles.textMuted} mb-1`}>СЛОЖНОСТЬ</div>
                         <div className={`text-xl font-bold ${
                           selectedSong.difficulty === 'easy' ? 'text-green-400' :
                           selectedSong.difficulty === 'medium' ? 'text-yellow-400' : 'text-red-400'
@@ -517,9 +532,9 @@ export default function GamePage() {
                           {difficultyConfig[selectedSong.difficulty].icon} {difficultyConfig[selectedSong.difficulty].label}
                         </div>
                       </div>
-                      <div className="bg-gray-800/50 rounded-lg p-3 text-center">
-                        <div className="text-xs text-gray-400 mb-1">НОТ/АККОРДОВ</div>
-                        <div className="text-xl font-bold text-white">{selectedSong.notes?.length || 0}</div>
+                      <div className={`${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-lg p-3 text-center`}>
+                        <div className={`text-xs ${styles.textMuted} mb-1`}>НОТ/АККОРДОВ</div>
+                        <div className={`text-xl font-bold ${styles.textPrimary}`}>{selectedSong.notes?.length || 0}</div>
                       </div>
                     </div>
 
@@ -537,7 +552,7 @@ export default function GamePage() {
                       className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${
                         user 
                           ? 'bg-gradient-to-r from-primary to-primary-dark text-white hover:shadow-lg hover:shadow-primary/30 transform hover:scale-[1.02]'
-                          : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                          : isDark ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
                       <Play className="w-5 h-5" />
@@ -545,17 +560,17 @@ export default function GamePage() {
                     </button>
 
                     {!user && (
-                      <p className="text-xs text-gray-500 text-center mt-3">
+                      <p className={`text-xs ${styles.textMuted} text-center mt-3`}>
                         🔐 Войдите в аккаунт, чтобы играть и добавлять песни в избранное
                       </p>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700 p-12 text-center">
+                <div className={`${styles.cardBg} backdrop-blur-sm rounded-xl border ${styles.cardBorder} p-12 text-center`}>
                   <div className="text-6xl mb-4">🎸</div>
-                  <h3 className="text-xl font-bold text-white mb-2">ДОБРО ПОЖАЛОВАТЬ!</h3>
-                  <p className="text-gray-400">
+                  <h3 className={`text-xl font-bold ${styles.textPrimary} mb-2`}>ДОБРО ПОЖАЛОВАТЬ!</h3>
+                  <p className={styles.textSecondary}>
                     Выбери песню из списка слева,<br/>
                     чтобы начать игру
                   </p>
@@ -579,7 +594,7 @@ export default function GamePage() {
             width: 6px;
           }
           .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1f1f1f;
+            background: ${isDark ? '#1f1f1f' : '#f1f1f1'};
             border-radius: 3px;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb {

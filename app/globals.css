@@ -633,3 +633,46 @@ body::before {
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
 }
+
+/* Переопределение цвета текста песен для светлой темы */
+.light .prose div[style*="color: #e4e4e7"] {
+  color: #1a1a2e !important;
+}
+
+.light .prose div.text-row {
+  color: #1a1a2e !important;
+}
+
+.light .prose div.chord-row {
+  color: #1a1a2e !important;
+}
+
+.light .prose td {
+  color: #1a1a2e !important;
+}
+
+/* Аккорды оставляем красными */
+.light .prose .chord-cell {
+  color: #ef4444 !important;
+}
+
+/* Для темной темы */
+.dark .prose div[style*="color: #e4e4e7"] {
+  color: #e4e4e7 !important;
+}
+
+.dark .prose div.text-row {
+  color: #e4e4e7 !important;
+}
+
+.dark .prose div.chord-row {
+  color: #e4e4e7 !important;
+}
+
+.dark .prose td {
+  color: #e4e4e7 !important;
+}
+
+.dark .prose .chord-cell {
+  color: #ef4444 !important;
+}

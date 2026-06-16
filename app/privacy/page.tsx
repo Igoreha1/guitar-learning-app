@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   ChevronRight, Home, Shield, FileText, Lock, 
@@ -8,7 +9,23 @@ import {
 } from "lucide-react";
 
 export default function PrivacyPage() {
+  const [isDark, setIsDark] = useState(true);
   const lastUpdated = "28 мая 2026 г.";
+
+  // Следим за изменением темы
+  useEffect(() => {
+    const checkTheme = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setIsDark(isDarkMode);
+    };
+    
+    checkTheme();
+    
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
 
   const sections = [
     { id: "general", title: "Общие положения", icon: FileText },
@@ -27,10 +44,21 @@ export default function PrivacyPage() {
     }
   };
 
+  // Стили в зависимости от темы
+  const styles = {
+    bgPage: isDark ? 'bg-gradient-to-br from-dark via-gray-dark to-darker' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100',
+    textPrimary: isDark ? 'text-white' : 'text-gray-900',
+    textSecondary: isDark ? 'text-gray-400' : 'text-gray-600',
+    textMuted: isDark ? 'text-gray-500' : 'text-gray-400',
+    cardBg: isDark ? 'bg-gray-800/30 backdrop-blur-sm border-gray-700' : 'bg-white/80 backdrop-blur-sm border-gray-200',
+    cardBgInner: isDark ? 'bg-gray-800/50' : 'bg-gray-50',
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker">
+    <div className={`min-h-screen ${styles.bgPage}`}>
       {/* Hero секция */}
       <section className="relative overflow-hidden pt-20 pb-12">
+        {/* Анимированные лучи */}
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000" />
@@ -38,13 +66,13 @@ export default function PrivacyPage() {
         
         <div className="relative z-10 max-w-6xl mx-auto px-4">
           {/* Хлебные крошки */}
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+          <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} mb-6`}>
             <Link href="/" className="hover:text-primary transition-colors flex items-center gap-1">
               <Home className="w-4 h-4" />
               Главная
             </Link>
             <ChevronRight className="w-4 h-4" />
-            <span className="text-gray-300">Политика конфиденциальности</span>
+            <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Политика конфиденциальности</span>
           </div>
 
           <div className="text-center">
@@ -53,14 +81,14 @@ export default function PrivacyPage() {
               <span className="text-sm text-primary font-medium">Защита данных</span>
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              <span className={`bg-gradient-to-r ${isDark ? 'from-white to-gray-400' : 'from-gray-900 to-gray-600'} bg-clip-text text-transparent`}>
                 Политика конфиденциальности
               </span>
             </h1>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+            <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'} text-lg max-w-2xl mx-auto`}>
               Защита ваших персональных данных — наш главный приоритет
             </p>
-            <p className="text-gray-500 text-sm mt-3">
+            <p className={`${isDark ? 'text-gray-500' : 'text-gray-400'} text-sm mt-3`}>
               Последнее обновление: {lastUpdated}
             </p>
           </div>
@@ -70,8 +98,8 @@ export default function PrivacyPage() {
       {/* Быстрая навигация */}
       <section className="py-6">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-5">
-            <h2 className="text-sm font-semibold text-gray-400 mb-4 flex items-center gap-2">
+          <div className={`rounded-2xl border p-5 ${styles.cardBg}`}>
+            <h2 className={`text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'} mb-4 flex items-center gap-2`}>
               <ExternalLink className="w-4 h-4" />
               Быстрая навигация по документу
             </h2>
@@ -80,7 +108,7 @@ export default function PrivacyPage() {
                 <button
                   key={section.id}
                   onClick={() => scrollToSection(section.id)}
-                  className="flex items-center gap-2 px-3 py-2 bg-gray-800/50 rounded-lg text-sm text-gray-300 hover:bg-primary/20 hover:text-primary transition-all duration-200 text-left group"
+                  className={`flex items-center gap-2 px-3 py-2 ${isDark ? 'bg-gray-800/50 text-gray-300 hover:bg-primary/20' : 'bg-gray-100 text-gray-700 hover:bg-primary/10'} rounded-lg text-sm hover:text-primary transition-all duration-200 text-left group`}
                 >
                   <section.icon className="w-4 h-4 group-hover:text-primary" />
                   <span>{section.title}</span>
@@ -97,14 +125,14 @@ export default function PrivacyPage() {
           <div className="space-y-8">
             
             {/* 1. Общие положения */}
-            <div id="general" className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 scroll-mt-24">
+            <div id="general" className={`rounded-2xl border p-6 scroll-mt-24 ${styles.cardBg}`}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                <div className={`w-10 h-10 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-xl flex items-center justify-center`}>
                   <FileText className="w-5 h-5 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold text-white">1. Общие положения</h2>
+                <h2 className={`text-xl font-bold ${styles.textPrimary}`}>1. Общие положения</h2>
               </div>
-              <div className="space-y-4 text-gray-300 leading-relaxed">
+              <div className={`space-y-4 ${isDark ? 'text-gray-300' : 'text-gray-700'} leading-relaxed`}>
                 <p>
                   Настоящая Политика конфиденциальности (далее — «Политика») определяет порядок обработки 
                   и защиты персональных данных пользователей веб-приложения <strong className="text-primary">ГитарСинхро</strong> 
@@ -114,8 +142,8 @@ export default function PrivacyPage() {
                   Используя наш Сервис, вы даёте согласие на обработку ваших персональных данных в соответствии 
                   с настоящей Политикой. Если вы не согласны с условиями Политики, пожалуйста, прекратите использование Сервиса.
                 </p>
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <p className="text-sm text-gray-400">
+                <div className={`${isDark ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-100 border-gray-200'} rounded-xl p-4 border`}>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                     📌 Правовое основание: Федеральный закон от 27.07.2006 № 152-ФЗ 
                     «О персональных данных» и иные нормативные правовые акты Российской Федерации в области защиты персональных данных.
                   </p>
@@ -124,21 +152,21 @@ export default function PrivacyPage() {
             </div>
 
             {/* 2. Какие данные мы собираем */}
-            <div id="data" className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 scroll-mt-24">
+            <div id="data" className={`rounded-2xl border p-6 scroll-mt-24 ${styles.cardBg}`}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                <div className={`w-10 h-10 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-xl flex items-center justify-center`}>
                   <Database className="w-5 h-5 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold text-white">2. Какие данные мы собираем</h2>
+                <h2 className={`text-xl font-bold ${styles.textPrimary}`}>2. Какие данные мы собираем</h2>
               </div>
               <div className="space-y-4">
-                <p className="text-gray-300">
+                <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>
                   В процессе использования Сервиса мы можем собирать следующие данные:
                 </p>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="bg-gray-800/50 rounded-xl p-4">
+                  <div className={`${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-xl p-4`}>
                     <h3 className="font-semibold text-primary mb-2">📝 Данные, предоставленные вами</h3>
-                    <ul className="space-y-2 text-sm text-gray-300">
+                    <ul className={`space-y-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                       <li className="flex items-start gap-2">• Имя и фамилия</li>
                       <li className="flex items-start gap-2">• Адрес электронной почты</li>
                       <li className="flex items-start gap-2">• Контактный телефон</li>
@@ -146,9 +174,9 @@ export default function PrivacyPage() {
                       <li className="flex items-start gap-2">• Аватар (фотография)</li>
                     </ul>
                   </div>
-                  <div className="bg-gray-800/50 rounded-xl p-4">
+                  <div className={`${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-xl p-4`}>
                     <h3 className="font-semibold text-primary mb-2">📊 Данные, собираемые автоматически</h3>
-                    <ul className="space-y-2 text-sm text-gray-300">
+                    <ul className={`space-y-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                       <li className="flex items-start gap-2">• IP-адрес</li>
                       <li className="flex items-start gap-2">• Тип браузера и устройства</li>
                       <li className="flex items-start gap-2">• Данные о прогрессе обучения</li>
@@ -161,16 +189,16 @@ export default function PrivacyPage() {
             </div>
 
             {/* 3. Как мы используем данные */}
-            <div id="use" className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 scroll-mt-24">
+            <div id="use" className={`rounded-2xl border p-6 scroll-mt-24 ${styles.cardBg}`}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                <div className={`w-10 h-10 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-xl flex items-center justify-center`}>
                   <Eye className="w-5 h-5 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold text-white">3. Как мы используем данные</h2>
+                <h2 className={`text-xl font-bold ${styles.textPrimary}`}>3. Как мы используем данные</h2>
               </div>
-              <div className="space-y-4 text-gray-300">
+              <div className={`space-y-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 <p>Ваши персональные данные используются для следующих целей:</p>
-                <ul className="space-y-2 pl-5 list-disc">
+                <ul className={`space-y-2 pl-5 list-disc ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   <li>Предоставление доступа к функциям Сервиса (тюнер, метроном, генератор аккордов)</li>
                   <li>Сохранение и отображение вашего прогресса обучения</li>
                   <li>Отправка уведомлений о новых песнях и аккордах (с вашего согласия)</li>
@@ -178,8 +206,8 @@ export default function PrivacyPage() {
                   <li>Обработка ваших обращений в службу поддержки</li>
                   <li>Анализ использования Сервиса для его улучшения</li>
                 </ul>
-                <div className="bg-primary/10 rounded-xl p-4 border border-primary/20">
-                  <p className="text-sm text-gray-300">
+                <div className={`${isDark ? 'bg-primary/10 border-primary/20' : 'bg-primary/5 border-primary/20'} rounded-xl p-4 border`}>
+                  <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                     📧 <strong className="text-primary">Email-рассылки:</strong> Вы всегда можете отписаться от рассылки, 
                     нажав на ссылку «Отписаться» в любом письме или в настройках профиля.
                   </p>
@@ -188,37 +216,37 @@ export default function PrivacyPage() {
             </div>
 
             {/* 4. Хранение и защита данных */}
-            <div id="storage" className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 scroll-mt-24">
+            <div id="storage" className={`rounded-2xl border p-6 scroll-mt-24 ${styles.cardBg}`}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                <div className={`w-10 h-10 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-xl flex items-center justify-center`}>
                   <Lock className="w-5 h-5 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold text-white">4. Хранение и защита данных</h2>
+                <h2 className={`text-xl font-bold ${styles.textPrimary}`}>4. Хранение и защита данных</h2>
               </div>
-              <div className="space-y-4 text-gray-300">
+              <div className={`space-y-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 <p>
                   Мы принимаем все необходимые организационные и технические меры для защиты ваших персональных 
                   данных от неправомерного доступа, уничтожения, изменения, блокирования и иных неправомерных действий.
                 </p>
                 <div className="grid md:grid-cols-2 gap-4 mt-4">
-                  <div className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg">
+                  <div className={`flex items-center gap-3 p-3 ${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-lg`}>
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Хэширование паролей (bcrypt)</span>
+                    <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Хэширование паролей (bcrypt)</span>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg">
+                  <div className={`flex items-center gap-3 p-3 ${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-lg`}>
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">JWT-токены для авторизации</span>
+                    <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>JWT-токены для авторизации</span>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg">
+                  <div className={`flex items-center gap-3 p-3 ${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-lg`}>
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">HTTPS-соединение</span>
+                    <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>HTTPS-соединение</span>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg">
+                  <div className={`flex items-center gap-3 p-3 ${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-lg`}>
                     <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Регулярное резервное копирование</span>
+                    <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Регулярное резервное копирование</span>
                   </div>
                 </div>
-                <p className="text-sm text-gray-400 mt-3">
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-3`}>
                   Срок хранения данных — в течение всего периода использования Сервиса. 
                   Вы можете удалить свой аккаунт в любое время в настройках профиля.
                 </p>
@@ -226,50 +254,50 @@ export default function PrivacyPage() {
             </div>
 
             {/* 5. Файлы cookie */}
-            <div id="cookies" className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 scroll-mt-24">
+            <div id="cookies" className={`rounded-2xl border p-6 scroll-mt-24 ${styles.cardBg}`}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                <div className={`w-10 h-10 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-xl flex items-center justify-center`}>
                   <Cookie className="w-5 h-5 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold text-white">5. Файлы cookie</h2>
+                <h2 className={`text-xl font-bold ${styles.textPrimary}`}>5. Файлы cookie</h2>
               </div>
-              <div className="space-y-4 text-gray-300">
+              <div className={`space-y-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 <p>
                   Сервис использует файлы cookie для обеспечения корректной работы, персонализации 
                   и анализа использования сайта.
                 </p>
-                <div className="bg-gray-800/50 rounded-xl p-4">
+                <div className={`${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-xl p-4`}>
                   <h3 className="font-semibold text-primary mb-2">🍪 Типы используемых cookie:</h3>
-                  <ul className="space-y-2 text-sm">
-                    <li><strong className="text-white">Обязательные:</strong> необходимы для работы сервиса (авторизация, безопасность)</li>
-                    <li><strong className="text-white">Функциональные:</strong> запоминают ваши настройки (тема, избранное)</li>
-                    <li><strong className="text-white">Аналитические:</strong> помогают улучшать сервис (анонимная статистика)</li>
+                  <ul className={`space-y-2 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <li><strong className={isDark ? 'text-white' : 'text-gray-900'}>Обязательные:</strong> необходимы для работы сервиса (авторизация, безопасность)</li>
+                    <li><strong className={isDark ? 'text-white' : 'text-gray-900'}>Функциональные:</strong> запоминают ваши настройки (тема, избранное)</li>
+                    <li><strong className={isDark ? 'text-white' : 'text-gray-900'}>Аналитические:</strong> помогают улучшать сервис (анонимная статистика)</li>
                   </ul>
                 </div>
-                <p className="text-sm text-gray-400">
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   Вы можете отключить cookie в настройках браузера, но это может повлиять на работу некоторых функций Сервиса.
                 </p>
               </div>
             </div>
 
             {/* 6. Права пользователей */}
-            <div id="rights" className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 scroll-mt-24">
+            <div id="rights" className={`rounded-2xl border p-6 scroll-mt-24 ${styles.cardBg}`}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                <div className={`w-10 h-10 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-xl flex items-center justify-center`}>
                   <CheckCircle className="w-5 h-5 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold text-white">6. Права пользователей</h2>
+                <h2 className={`text-xl font-bold ${styles.textPrimary}`}>6. Права пользователей</h2>
               </div>
-              <div className="space-y-4 text-gray-300">
+              <div className={`space-y-4 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 <p>В соответствии с законодательством РФ, вы имеете право:</p>
-                <ul className="space-y-2 pl-5 list-disc">
+                <ul className={`space-y-2 pl-5 list-disc ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   <li>Получить информацию о ваших персональных данных, обработаваемых нами</li>
                   <li>Требовать уточнения, блокирования или уничтожения ваших данных</li>
                   <li>Отозвать согласие на обработку персональных данных</li>
                   <li>Удалить свой аккаунт (в настройках профиля)</li>
                 </ul>
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-                  <p className="text-sm text-yellow-400 flex items-start gap-2">
+                <div className={`${isDark ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-yellow-50 border-yellow-300'} rounded-xl p-4 border`}>
+                  <p className={`text-sm ${isDark ? 'text-yellow-400' : 'text-yellow-700'} flex items-start gap-2`}>
                     <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                     После удаления аккаунта ваши данные будут удалены без возможности восстановления. 
                     Общий прогресс (рекорды, статистика) будет аннулирован.
@@ -279,24 +307,24 @@ export default function PrivacyPage() {
             </div>
 
             {/* 7. Контактная информация */}
-            <div id="contacts" className="bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 scroll-mt-24">
+            <div id="contacts" className={`rounded-2xl border p-6 scroll-mt-24 ${styles.cardBg}`}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center">
+                <div className={`w-10 h-10 ${isDark ? 'bg-primary/20' : 'bg-primary/10'} rounded-xl flex items-center justify-center`}>
                   <Mail className="w-5 h-5 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold text-white">7. Контактная информация</h2>
+                <h2 className={`text-xl font-bold ${styles.textPrimary}`}>7. Контактная информация</h2>
               </div>
               <div className="space-y-4">
-                <p className="text-gray-300">
+                <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>
                   По всем вопросам, связанным с обработкой персональных данных, вы можете обратиться к нашему 
                   уполномоченному лицу:
                 </p>
-                <div className="bg-gray-800/50 rounded-xl p-5 space-y-3">
+                <div className={`${isDark ? 'bg-gray-800/50' : 'bg-gray-50'} rounded-xl p-5 space-y-3`}>
                   <div className="flex items-center gap-3">
                     <Mail className="w-5 h-5 text-primary" />
                     <div>
-                      <p className="text-sm text-gray-400">Email для обращений:</p>
-                      <a href="mailto:guitarsync@yandex.ru" className="text-white hover:text-primary transition-colors">
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Email для обращений:</p>
+                      <a href="mailto:guitarsync@yandex.ru" className={`${isDark ? 'text-white' : 'text-gray-900'} hover:text-primary transition-colors`}>
                         guitarsync@yandex.ru
                       </a>
                     </div>
@@ -304,8 +332,8 @@ export default function PrivacyPage() {
                   <div className="flex items-center gap-3">
                     <Phone className="w-5 h-5 text-primary" />
                     <div>
-                      <p className="text-sm text-gray-400">Телефон:</p>
-                      <a href="tel:+79991234567" className="text-white hover:text-primary transition-colors">
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Телефон:</p>
+                      <a href="tel:+79991234567" className={`${isDark ? 'text-white' : 'text-gray-900'} hover:text-primary transition-colors`}>
                         +7 (924) 432 33 04
                       </a>
                     </div>
@@ -313,12 +341,12 @@ export default function PrivacyPage() {
                   <div className="flex items-center gap-3">
                     <MapPin className="w-5 h-5 text-primary" />
                     <div>
-                      <p className="text-sm text-gray-400">Юридический адрес:</p>
-                      <p className="text-white">г. Санкт-петербург</p>
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Юридический адрес:</p>
+                      <p className={isDark ? 'text-white' : 'text-gray-900'}>г. Санкт-петербург</p>
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-4">
+                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'} mt-4`}>
                   Настоящая Политика конфиденциальности является публичным документом. Администрация оставляет 
                   за собой право вносить изменения в Политику с уведомлением пользователей через публикацию 
                   новой версии на Сайте.
@@ -328,8 +356,8 @@ export default function PrivacyPage() {
 
             {/* Подпись */}
             <div className="text-center pt-6">
-              <div className="border-t border-gray-700 pt-6">
-                <p className="text-gray-500 text-sm">
+              <div className={`border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} pt-6`}>
+                <p className={`${isDark ? 'text-gray-500' : 'text-gray-400'} text-sm`}>
                   © {new Date().getFullYear()} ГитарСинхро. Все права защищены.
                 </p>
               </div>

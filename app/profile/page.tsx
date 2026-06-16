@@ -65,6 +65,7 @@ interface Stats {
 }
 
 export default function ProfilePage() {
+  const [isDark, setIsDark] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [scores, setScores] = useState<Score[]>([]);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
@@ -81,6 +82,21 @@ export default function ProfilePage() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
   const router = useRouter();
+
+  // Следим за изменением темы
+  useEffect(() => {
+    const checkTheme = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setIsDark(isDarkMode);
+    };
+    
+    checkTheme();
+    
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
 
   // Загрузка данных пользователя
   useEffect(() => {
@@ -240,26 +256,32 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-  // Очищаем localStorage
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  
-  // Очищаем cookies
-  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-  
-  // Используем router.push с последующей перезагрузкой
-  router.push('/');
-  setTimeout(() => {
-    window.location.reload();
-  }, 100);
-};
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    router.push('/');
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
+
+  // Стили в зависимости от темы
+  const styles = {
+    bgPage: isDark ? 'bg-gradient-to-br from-dark via-gray-dark to-darker' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100',
+    textPrimary: isDark ? 'text-white' : 'text-gray-900',
+    textSecondary: isDark ? 'text-gray-400' : 'text-gray-600',
+    textMuted: isDark ? 'text-gray-500' : 'text-gray-400',
+    cardBg: isDark ? 'bg-gradient-to-br from-gray-dark/50 to-dark/50 border-gray-800' : 'bg-white border-gray-200 shadow-sm',
+    cardBgInner: isDark ? 'bg-gray-800/30' : 'bg-gray-50',
+    cardBgHover: isDark ? 'hover:bg-gray-800/50' : 'hover:bg-gray-100',
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker flex items-center justify-center">
+      <div className={`min-h-screen ${styles.bgPage} flex items-center justify-center`}>
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Загрузка профиля...</p>
+          <p className={styles.textSecondary}>Загрузка профиля...</p>
         </div>
       </div>
     );
@@ -279,9 +301,10 @@ export default function ProfilePage() {
   const level = getLevel(stats.totalScores);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark via-gray-dark to-darker">
+    <div className={`min-h-screen ${styles.bgPage}`}>
       {/* Hero секция */}
       <section className="relative overflow-hidden pt-16 pb-12">
+        {/* Анимированные лучи */}
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
@@ -290,13 +313,13 @@ export default function ProfilePage() {
         <div className="relative z-10 max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div>
-              <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+              <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
                 <Link href="/" className="hover:text-primary transition-colors">Главная</Link>
                 <ChevronRight className="w-4 h-4" />
-                <span className="text-gray-300">Профиль</span>
+                <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>Профиль</span>
               </div>
               <h1 className="text-3xl md:text-4xl font-bold">
-                <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                <span className={`bg-gradient-to-r ${isDark ? 'from-white to-gray-400' : 'from-gray-900 to-gray-600'} bg-clip-text text-transparent`}>
                   Мой профиль
                 </span>
               </h1>
@@ -311,7 +334,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Карточка профиля */}
-          <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-2xl border border-gray-800 p-6 mb-8">
+          <div className={`${styles.cardBg} rounded-2xl border p-6 mb-8`}>
             <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
               <div className="relative">
                 <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center text-4xl shadow-lg shadow-primary/20">
@@ -323,12 +346,12 @@ export default function ProfilePage() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2 flex-wrap">
-                  <h2 className="text-2xl font-bold text-white">{user.name}</h2>
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium bg-gray-800 ${level.color}`}>
+                  <h2 className={`text-2xl font-bold ${styles.textPrimary}`}>{user.name}</h2>
+                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${isDark ? 'bg-gray-800' : 'bg-gray-100'} ${level.color}`}>
                     {level.icon} {level.name}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                <div className={`flex flex-wrap gap-4 text-sm ${styles.textSecondary}`}>
                   <span className="flex items-center gap-1">
                     <Mail className="w-4 h-4 text-primary" />
                     {user.email}
@@ -342,7 +365,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3">
                 <Link
                   href="/profile/edit"
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
+                  className={`flex items-center gap-2 px-4 py-2 ${isDark ? 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200'} rounded-xl transition-all`}
                 >
                   <Settings className="w-4 h-4" />
                   Редактировать
@@ -377,48 +400,36 @@ export default function ProfilePage() {
 
           {/* Статистика */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-            <div className="bg-gray-800/30 rounded-xl p-4 text-center border border-gray-700 hover:border-primary/30 transition-all group">
-              <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">🎵</div>
-              <div className="text-xl font-bold text-white">{stats.totalScores}</div>
-              <div className="text-xs text-gray-500">Сыграно песен</div>
-            </div>
-            <div className="bg-gray-800/30 rounded-xl p-4 text-center border border-gray-700 hover:border-primary/30 transition-all group">
-              <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">🎯</div>
-              <div className="text-xl font-bold text-white">{Math.floor(stats.averageAccuracy)}%</div>
-              <div className="text-xs text-gray-500">Средняя точность</div>
-            </div>
-            <div className="bg-gray-800/30 rounded-xl p-4 text-center border border-gray-700 hover:border-primary/30 transition-all group">
-              <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">🏆</div>
-              <div className="text-xl font-bold text-white">{stats.bestScore}</div>
-              <div className="text-xs text-gray-500">Лучший счёт</div>
-            </div>
-            <div className="bg-gray-800/30 rounded-xl p-4 text-center border border-gray-700 hover:border-primary/30 transition-all group">
-              <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">⚡</div>
-              <div className="text-xl font-bold text-white">{stats.totalNotes?.toLocaleString() || 0}</div>
-              <div className="text-xs text-gray-500">Всего нот</div>
-            </div>
-            <div className="bg-gray-800/30 rounded-xl p-4 text-center border border-gray-700 hover:border-primary/30 transition-all group">
-              <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">⭐</div>
-              <div className="text-xl font-bold text-white">{Math.floor(stats.averageAccuracy / 20)}</div>
-              <div className="text-xs text-gray-500">Уровень</div>
-            </div>
+            {[
+              { icon: '🎵', value: stats.totalScores, label: 'Сыграно песен' },
+              { icon: '🎯', value: `${Math.floor(stats.averageAccuracy)}%`, label: 'Средняя точность' },
+              { icon: '🏆', value: stats.bestScore, label: 'Лучший счёт' },
+              { icon: '⚡', value: stats.totalNotes?.toLocaleString() || 0, label: 'Всего нот' },
+              { icon: '⭐', value: Math.floor(stats.averageAccuracy / 20), label: 'Уровень' },
+            ].map((stat, idx) => (
+              <div key={idx} className={`${isDark ? 'bg-gray-800/30 border-gray-700' : 'bg-white border-gray-200'} rounded-xl p-4 text-center border hover:border-primary/30 transition-all group`}>
+                <div className="text-2xl mb-2 group-hover:scale-110 transition-transform">{stat.icon}</div>
+                <div className={`text-xl font-bold ${styles.textPrimary}`}>{stat.value}</div>
+                <div className={`text-xs ${styles.textMuted}`}>{stat.label}</div>
+              </div>
+            ))}
           </div>
 
           {/* Табы */}
-          <div className="bg-gradient-to-br from-gray-dark/50 to-dark/50 rounded-2xl border border-gray-800 overflow-hidden">
-            <div className="flex border-b border-gray-800">
+          <div className={`${styles.cardBg} rounded-2xl border overflow-hidden`}>
+            <div className={`flex border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
               <button
                 onClick={() => setActiveTab('scores')}
                 className={`flex-1 py-4 text-center font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                   activeTab === 'scores'
                     ? 'text-primary border-b-2 border-primary bg-primary/5'
-                    : 'text-gray-500 hover:text-gray-300'
+                    : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 <Trophy className="w-4 h-4" />
                 Рекорды
                 {scores.length > 0 && (
-                  <span className="ml-1 text-xs text-gray-500">({scores.length})</span>
+                  <span className={`ml-1 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>({scores.length})</span>
                 )}
               </button>
               <button
@@ -426,13 +437,13 @@ export default function ProfilePage() {
                 className={`flex-1 py-4 text-center font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                   activeTab === 'favorites'
                     ? 'text-primary border-b-2 border-primary bg-primary/5'
-                    : 'text-gray-500 hover:text-gray-300'
+                    : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 <Heart className="w-4 h-4" />
                 Избранное
                 {favorites.length > 0 && (
-                  <span className="ml-1 text-xs text-gray-500">({favorites.length})</span>
+                  <span className={`ml-1 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>({favorites.length})</span>
                 )}
               </button>
               <button
@@ -440,13 +451,13 @@ export default function ProfilePage() {
                 className={`flex-1 py-4 text-center font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                   activeTab === 'saved'
                     ? 'text-primary border-b-2 border-primary bg-primary/5'
-                    : 'text-gray-500 hover:text-gray-300'
+                    : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 <Bookmark className="w-4 h-4" />
                 Сохранённое
                 {savedArticles.length > 0 && (
-                  <span className="ml-1 text-xs text-gray-500">({savedArticles.length})</span>
+                  <span className={`ml-1 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>({savedArticles.length})</span>
                 )}
               </button>
             </div>
@@ -457,8 +468,8 @@ export default function ProfilePage() {
                   {scores.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="text-6xl mb-4">🎮</div>
-                      <p className="text-gray-400 mb-4">У вас пока нет рекордов</p>
-                      <Link href="/game" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all">
+                      <p className={styles.textSecondary}>У вас пока нет рекордов</p>
+                      <Link href="/game" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all mt-4">
                         <Play className="w-4 h-4" />
                         Начать играть
                       </Link>
@@ -466,7 +477,7 @@ export default function ProfilePage() {
                   ) : (
                     <div className="space-y-3">
                       {scores.map((score, index) => (
-                        <div key={score.id} className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl hover:bg-gray-800/50 transition-all group">
+                        <div key={score.id} className={`flex items-center justify-between p-4 ${styles.cardBgInner} rounded-xl ${styles.cardBgHover} transition-all group`}>
                           <div className="flex items-center gap-4">
                             <div className="w-8 text-center">
                               <span className={`text-lg font-bold ${
@@ -478,9 +489,9 @@ export default function ProfilePage() {
                               </span>
                             </div>
                             <div>
-                              <h3 className="font-semibold text-white">{score.song.title}</h3>
-                              <p className="text-sm text-gray-500">{score.song.artist}</p>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                              <h3 className={`font-semibold ${styles.textPrimary}`}>{score.song.title}</h3>
+                              <p className={`text-sm ${styles.textMuted}`}>{score.song.artist}</p>
+                              <div className={`flex items-center gap-3 mt-1 text-xs ${styles.textMuted}`}>
                                 <span className="flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
                                   {new Date(score.createdAt).toLocaleDateString('ru-RU')}
@@ -508,8 +519,8 @@ export default function ProfilePage() {
                   {favorites.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="text-6xl mb-4">❤️</div>
-                      <p className="text-gray-400 mb-4">Нет избранных песен</p>
-                      <Link href="/game" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all">
+                      <p className={styles.textSecondary}>Нет избранных песен</p>
+                      <Link href="/game" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all mt-4">
                         <Music className="w-4 h-4" />
                         Выбрать песни
                       </Link>
@@ -517,10 +528,10 @@ export default function ProfilePage() {
                   ) : (
                     <div className="grid gap-3">
                       {favorites.map((fav) => (
-                        <div key={fav.id} className="flex items-center justify-between p-4 bg-gray-800/30 rounded-xl hover:bg-gray-800/50 transition-all group">
+                        <div key={fav.id} className={`flex items-center justify-between p-4 ${styles.cardBgInner} rounded-xl ${styles.cardBgHover} transition-all group`}>
                           <div>
-                            <h3 className="font-semibold text-white">{fav.song.title}</h3>
-                            <p className="text-sm text-gray-500">{fav.song.artist}</p>
+                            <h3 className={`font-semibold ${styles.textPrimary}`}>{fav.song.title}</h3>
+                            <p className={`text-sm ${styles.textMuted}`}>{fav.song.artist}</p>
                             <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${
                               fav.song.difficulty === 'easy' 
                                 ? 'bg-green-500/20 text-green-400' 
@@ -559,8 +570,8 @@ export default function ProfilePage() {
                   {savedArticles.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="text-6xl mb-4">📖</div>
-                      <p className="text-gray-400 mb-4">Нет сохранённых статей</p>
-                      <Link href="/lessons" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all">
+                      <p className={styles.textSecondary}>Нет сохранённых статей</p>
+                      <Link href="/lessons" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-primary/30 transition-all mt-4">
                         <BookOpen className="w-4 h-4" />
                         К урокам
                       </Link>
@@ -568,15 +579,15 @@ export default function ProfilePage() {
                   ) : (
                     <div className="space-y-4">
                       {savedArticles.map((item) => (
-                        <div key={item.id} className="flex items-start justify-between p-4 bg-gray-800/30 rounded-xl hover:bg-gray-800/50 transition-all group">
+                        <div key={item.id} className={`flex items-start justify-between p-4 ${styles.cardBgInner} rounded-xl ${styles.cardBgHover} transition-all group`}>
                           <div className="flex-1">
                             <Link href={`/${item.article.category}/${item.article.slug}`}>
-                              <h3 className="font-semibold text-white group-hover:text-primary transition-colors">
+                              <h3 className={`font-semibold ${styles.textPrimary} group-hover:text-primary transition-colors`}>
                                 {item.article.title}
                               </h3>
                             </Link>
-                            <p className="text-sm text-gray-500 mt-1">{item.article.subcategory}</p>
-                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                            <p className={`text-sm ${styles.textMuted} mt-1`}>{item.article.subcategory}</p>
+                            <div className={`flex items-center gap-3 mt-2 text-xs ${styles.textMuted}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
                                 {new Date(item.article.createdAt).toLocaleDateString('ru-RU')}

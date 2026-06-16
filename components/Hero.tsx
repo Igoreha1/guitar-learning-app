@@ -12,6 +12,26 @@ export default function Hero() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [floatingNotes, setFloatingNotes] = useState<Array<{ id: number; x: number; delay: number; duration: number; symbol: string }>>([]);
+  const [isDark, setIsDark] = useState(true);
+
+  // Следим за изменением темы
+  useEffect(() => {
+    const checkTheme = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setIsDark(isDarkMode);
+    };
+    
+    checkTheme();
+    
+    const observer = new MutationObserver(() => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setIsDark(isDarkMode);
+    });
+    
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     setIsLoaded(true);
@@ -46,12 +66,16 @@ export default function Hero() {
 
   return (
     <>
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
-        {/* Анимированный градиентный фон */}
-        <div className="absolute inset-0 bg-gradient-to-br from-dark/50 via-dark/30 to-darker/50 z-0" />
+      <section className={`relative min-h-[85vh] flex items-center justify-center overflow-hidden ${isDark ? '' : 'bg-white'}`}>
+        {/* Полупрозрачный фон, чтобы был виден шахматный узор */}
+        <div className={`absolute inset-0 z-0 ${
+          isDark 
+            ? 'bg-dark/60' 
+            : 'bg-gray-50/60'
+        }`} />
         
         {/* Анимированные лучи */}
-        <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 opacity-30 z-0">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
@@ -61,7 +85,7 @@ export default function Hero() {
         {floatingNotes.map((note) => (
           <div
             key={note.id}
-            className="absolute text-primary/20 text-2xl pointer-events-none animate-float"
+            className="absolute text-primary/20 text-2xl pointer-events-none animate-float z-0"
             style={{
               left: `${note.x}%`,
               top: `${Math.random() * 100}%`,
@@ -82,9 +106,9 @@ export default function Hero() {
             <span className="text-sm text-primary font-medium">Бесплатное обучение — навсегда</span>
           </div>
 
-          {/* Заголовок — используем dark: для переключения темы */}
+          {/* Заголовок */}
           <h1 className={`text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight transition-all duration-700 delay-100 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
-            <span className="dark:text-white text-gray-900">
+            <span className={isDark ? 'text-white' : 'text-gray-900'}>
               Играй на гитаре
             </span>
             <br />
@@ -94,7 +118,7 @@ export default function Hero() {
           </h1>
 
           {/* Подзаголовок */}
-          <p className={`text-text-secondary text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed transition-all duration-700 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
+          <p className={`${isDark ? 'text-gray-300' : 'text-gray-700'} text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed transition-all duration-700 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
             Более 1000 разборов песен, аккордовые схемы, интерактивные уроки
             и удобный метроном — всё для начинающих гитаристов
           </p>
@@ -121,7 +145,7 @@ export default function Hero() {
           </div>
 
           {/* Статистика */}
-          <div className={`flex flex-wrap justify-center gap-8 md:gap-16 pt-8 border-t border-border-color transition-all duration-700 delay-400 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <div className={`flex flex-wrap justify-center gap-8 md:gap-16 pt-8 border-t ${isDark ? 'border-white/10' : 'border-gray-300/30'} transition-all duration-700 delay-400 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             {[
               { number: "500+", label: "Разборов песен", icon: "🎵" },
               { number: "50+", label: "Уроков", icon: "📚" },
@@ -132,7 +156,7 @@ export default function Hero() {
                 <div className="text-4xl md:text-5xl font-black bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent mb-2 group-hover:scale-110 transition-transform">
                   {stat.number}
                 </div>
-                <div className="flex items-center gap-1 text-text-secondary text-sm">
+                <div className={`flex items-center gap-1 ${isDark ? 'text-gray-300' : 'text-gray-700'} text-sm`}>
                   <span>{stat.icon}</span>
                   <span>{stat.label}</span>
                 </div>
