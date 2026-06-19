@@ -3,17 +3,10 @@ import type { NextRequest } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
-// Простая функция проверки токена
-function isValidToken(token: string): boolean {
-  // Можно добавить реальную проверку jwt.verify, но это замедлит запросы
-  // Для простоты проверяем, что токен существует и имеет минимальную длину
-  return token !== null && token.length > 20;
-}
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // 1. АДМИН-ПАНЕЛЬ (без изменений)
+  // === АДМИН-ПАНЕЛЬ ===
   const isAdminPath = pathname.startsWith('/admin');
   const isAdminLoginPath = pathname === '/admin/login';
   
@@ -26,7 +19,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // 2. API МАРШРУТЫ
+  // === API МАРШРУТЫ ===
   if (pathname.startsWith('/api')) {
     // Публичные API (не требуют авторизации)
     const publicApis = [
@@ -36,7 +29,13 @@ export function middleware(request: NextRequest) {
       '/api/auth/forgot-password',
       '/api/auth/reset-password',
       '/api/game/songs',
-      '/api/subscribe/status'
+      '/api/subscribe/status',
+      '/api/admin/login',
+      '/api/admin/set-cookie',  // ← ДОБАВЛЯЕМ СЮДА
+      '/api/admin/logout',
+      '/api/upload',
+      '/api/upload-audio',
+      '/api/test'
     ];
     
     // Проверяем, является ли API публичным
