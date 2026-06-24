@@ -21,7 +21,6 @@ export function middleware(request: NextRequest) {
   
   // === API МАРШРУТЫ ===
   if (pathname.startsWith('/api')) {
-    // Публичные API (не требуют авторизации)
     const publicApis = [
       '/api/auth/login',
       '/api/auth/register',
@@ -31,7 +30,7 @@ export function middleware(request: NextRequest) {
       '/api/game/songs',
       '/api/subscribe/status',
       '/api/admin/login',
-      '/api/admin/set-cookie',  // ← ДОБАВЛЯЕМ СЮДА
+      '/api/admin/set-cookie',
       '/api/admin/logout',
       '/api/upload',
       '/api/upload-audio',
@@ -45,7 +44,6 @@ export function middleware(request: NextRequest) {
       return NextResponse.next();
     }
     
-    // Защищённые API — проверяем токен
     const authHeader = request.headers.get('authorization');
     let token: string | null = null;
     
@@ -53,7 +51,6 @@ export function middleware(request: NextRequest) {
       token = authHeader.substring(7);
     }
     
-    // Также проверяем токен в cookie (для случаев, когда заголовок не передан)
     if (!token) {
       const cookieToken = request.cookies.get('token');
       token = cookieToken?.value || null;

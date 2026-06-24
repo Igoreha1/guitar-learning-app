@@ -35,6 +35,16 @@ export default function TunerPage() {
     setMicPermission(granted);
   };
 
+  // Данные о струнах с уникальными ключами
+  const stringsData = [
+    { id: "e1", note: "E", name: "Ми", string: "1-я струна", frequency: "329.63 Hz", color: "from-purple-500" },
+    { id: "b2", note: "B", name: "Си", string: "2-я струна", frequency: "246.94 Hz", color: "from-blue-500" },
+    { id: "g3", note: "G", name: "Соль", string: "3-я струна", frequency: "196.00 Hz", color: "from-green-500" },
+    { id: "d4", note: "D", name: "Ре", string: "4-я струна", frequency: "146.83 Hz", color: "from-yellow-500" },
+    { id: "a5", note: "A", name: "Ля", string: "5-я струна", frequency: "110.00 Hz", color: "from-orange-500" },
+    { id: "e6", note: "E", name: "Ми", string: "6-я струна", frequency: "82.41 Hz", color: "from-red-500" },
+  ];
+
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gradient-to-br from-dark via-gray-dark to-darker' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'}`}>
       {/* Hero секция */}
@@ -94,15 +104,11 @@ export default function TunerPage() {
           <div className={`${isDark ? 'bg-gradient-to-br from-gray-dark/30 to-dark/30 border-gray-800' : 'bg-white border-gray-200 shadow-sm'} rounded-2xl border p-6`}>
             <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-4 text-center`}>Стандартный строй гитары</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {[
-                { note: "E", name: "Ми", string: "1-я струна", frequency: "329.63 Hz", color: "from-purple-500" },
-                { note: "B", name: "Си", string: "2-я струна", frequency: "246.94 Hz", color: "from-blue-500" },
-                { note: "G", name: "Соль", string: "3-я струна", frequency: "196.00 Hz", color: "from-green-500" },
-                { note: "D", name: "Ре", string: "4-я струна", frequency: "146.83 Hz", color: "from-yellow-500" },
-                { note: "A", name: "Ля", string: "5-я струна", frequency: "110.00 Hz", color: "from-orange-500" },
-                { note: "E", name: "Ми", string: "6-я струна", frequency: "82.41 Hz", color: "from-red-500" },
-              ].map((string) => (
-                <div key={string.note} className={`text-center p-3 ${isDark ? 'bg-gray-dark/50 border-gray-800' : 'bg-gray-50 border-gray-200'} rounded-xl border hover:border-primary/30 transition-all duration-300 hover:-translate-y-1`}>
+              {stringsData.map((string) => (
+                <div 
+                  key={string.id} 
+                  className={`text-center p-3 ${isDark ? 'bg-gray-dark/50 border-gray-800' : 'bg-gray-50 border-gray-200'} rounded-xl border hover:border-primary/30 transition-all duration-300 hover:-translate-y-1`}
+                >
                   <div className={`text-2xl font-bold bg-gradient-to-br ${string.color} to-primary bg-clip-text text-transparent`}>
                     {string.note}
                   </div>

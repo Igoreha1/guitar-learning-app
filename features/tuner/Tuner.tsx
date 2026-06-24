@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Mic, CheckCircle, RefreshCw, Square } from 'lucide-react';
 
-// PitchDetector класс (без изменений)
+// PitchDetector класс
 class PitchDetector {
   private audioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
@@ -11,6 +11,7 @@ class PitchDetector {
   private analyserNode: AnalyserNode | null = null;
   private isRunning: boolean = false;
   private onPitchDetectedCallback: (pitch: number, noteName: string) => void = () => {};
+  private lastCallbackTime: number = 0;
 
   private noteFrequencies: { [key: string]: number } = {
     'E2': 82.41, 'F2': 87.31, 'F#2': 92.50, 'G2': 98.00, 'G#2': 103.83,
@@ -67,7 +68,12 @@ class PitchDetector {
     
     if (pitch > 0) {
       const noteName = this.getNoteName(pitch);
-      this.onPitchDetectedCallback(pitch, noteName);
+      // Ограничиваем частоту вызова до 30 раз в секунду для плавности
+      const now = performance.now();
+      if (now - this.lastCallbackTime > 33) {
+        this.lastCallbackTime = now;
+        this.onPitchDetectedCallback(pitch, noteName);
+      }
     }
 
     requestAnimationFrame(() => this.detectPitch());
@@ -163,6 +169,9 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
   const [volume, setVolume] = useState(0);
   const detectorRef = useRef<PitchDetector | null>(null);
   const tunedRef = useRef<boolean[]>([false, false, false, false, false, false]);
+  
+  // Refs для отслеживания последнего обновления
+  const lastUpdateRef = useRef<number>(0);
 
   // Следим за изменением темы
   useEffect(() => {
@@ -219,12 +228,10 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
     }
     
     setIsListening(true);
+    lastUpdateRef.current = 0;
     
     detectorRef.current.startDetection((pitch: number, noteName: string) => {
       if (pitch > 0) {
-        setCurrentFrequency(pitch);
-        setCurrentNote(noteName);
-        
         const vol = Math.min(1, pitch / 500);
         setVolume(vol);
         
@@ -242,6 +249,10 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
             }
           }
         });
+        
+        // Обновляем состояние мгновенно, без задержки
+        setCurrentFrequency(pitch);
+        setCurrentNote(noteName);
         
         if (closestIndex !== -1) {
           setCurrentStringIndex(closestIndex);
@@ -294,6 +305,8 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
   const tunedCount = tunedStrings.filter(v => v === true).length;
   const allTuned = tunedCount === 6;
 
+  const currentString = currentStringIndex !== null ? STRINGS[currentStringIndex] : null;
+
   return (
     <div>
       {/* Статус микрофона */}
@@ -304,17 +317,6 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
             {isListening ? 'Микрофон активен' : 'Микрофон ожидает'}
           </span>
         </div>
-        {isListening && (
-          <div className="flex items-center gap-1">
-            {[0, 1, 2, 3].map(i => (
-              <div
-                key={i}
-                className="w-1.5 bg-gradient-to-t from-primary to-primary/60 rounded-full transition-all duration-100"
-                style={{ height: `${volume * 20 * (i + 1)}px`, opacity: volume * (i + 1) + 0.3 }}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Кнопка включения/выключения */}
@@ -407,19 +409,19 @@ export default function Tuner({ onTuneComplete, onMicPermission, isMuted = false
       </div>
 
       {/* Информация о текущей струне */}
-      {currentStringIndex !== null && (
+      {currentStringIndex !== null && currentString && (
         <div className="text-center mb-8 animate-fade-in-up">
           <div 
             className="inline-flex flex-col items-center gap-2 px-8 py-4 rounded-2xl border"
             style={{ 
-              background: isDark ? STRINGS[currentStringIndex].colorDark : STRINGS[currentStringIndex].colorLight,
-              borderColor: `${STRINGS[currentStringIndex].color}40`
+              background: isDark ? currentString.colorDark : currentString.colorLight,
+              borderColor: `${currentString.color}40`
             }}
           >
-            <span className="text-2xl font-bold" style={{ color: STRINGS[currentStringIndex].color }}>
-              {STRINGS[currentStringIndex].name}
+            <span className="text-2xl font-bold" style={{ color: currentString.color }}>
+              {currentString.name}
             </span>
-            <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{STRINGS[currentStringIndex].note}</span>
+            <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{currentString.note}</span>
           </div>
           
           <div className="mt-4">
